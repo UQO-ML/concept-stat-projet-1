@@ -74,6 +74,7 @@ def error_confidence(y_proba, y_pred, y_test) -> Any:
     ax1.legend()
 
     # Accuracy par classe
+    cm = confusion_matrix(y_test.flatten(), y_pred)
     acc_per_class = cm.diagonal() / cm.sum(axis=1)
     ax2.barh(CLASS_NAMES, acc_per_class, color='steelblue')
     ax2.set_xlim(0, 1)
