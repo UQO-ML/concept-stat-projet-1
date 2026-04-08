@@ -1,10 +1,1 @@
-pandas
-numpy
-scikit-learn
-matplotlib
-seaborn
-jupyter
-ipykernel
-tensorflow
-transformers
-torch
+-r requirements-base.txt
