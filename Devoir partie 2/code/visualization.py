@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import matplotlib.pyplot as plt
 import numpy as np
-from types import Any
+from typing import Any
 from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
 
 CLASS_NAMES = ['avion','auto','oiseau','chat','cerf',
@@ -49,9 +49,9 @@ def confusion_matrices(y_pred, y_test) -> Any:
 
 
 # Exemples d\'erreurs de classification
-def classification_error_examples(y_pred, x_test, y_test) -> Any:
+def classification_error_samples(y_pred, x_test, y_test) -> Any:
     errors = np.where(y_pred != y_test.flatten())[0]
-    sample = np.random.Generator(errors, 10, replace=False)
+    sample = np.random.choice(errors, 10, replace=False)
     fig, axes = plt.subplots(2, 5, figsize=(14, 6))
     for ax, idx in zip(axes.flat, sample):
         ax.imshow(x_test[idx])
@@ -84,3 +84,19 @@ def error_confidence(y_proba, y_pred, y_test) -> Any:
     fig.suptitle("Confiance Erreur")
     plt.tight_layout()
     return plt.show()
+
+def learning_curve(history_fit) -> Any:
+    plt.figure(figsize=(12, 4))
+    plt.subplot(1, 2, 1)
+    plt.plot(history_fit.history['loss'], label='Perte d\'entraînement')
+    plt.plot(history_fit.history['val_loss'], label='Perte de validation')
+    plt.legend()
+    plt.title('Courbe de Perte')
+
+    plt.subplot(1, 2, 2)
+    plt.plot(history_fit.history['accuracy'], label='Précision d\'entraînement')
+    plt.plot(history_fit.history['val_accuracy'], label='Précision de validation')
+    plt.legend()
+    plt.title('Courbe de Précision')
+
+    return plt.show()  

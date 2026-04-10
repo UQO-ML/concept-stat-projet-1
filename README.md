@@ -77,7 +77,56 @@ source .venv/bin/activate.fish
 source ./scripts/tf_gpu_env.fish
 ```
 
-## Verification rapide
+## Docker (recommande)
+
+L'approche la plus fiable pour utiliser TensorFlow est via Docker.
+Deux services sont disponibles : **GPU** et **CPU** (fallback optimise).
+
+### Prerequis Docker
+
+- Docker Engine installe (`docker --version`)
+- Pour le service GPU : NVIDIA Container Toolkit (`nvidia-ctk --version`) et pilote NVIDIA (`nvidia-smi`)
+
+### Service GPU
+
+Le conteneur embarque CUDA et cuDNN pre-configures ; seul le pilote NVIDIA de l'hote est requis.
+
+```bash
+docker compose up jupyter-gpu --build
+```
+
+Jupyter GPU accessible sur **http://localhost:8889** (sans token).
+
+### Service CPU (fallback AVX512 / oneDNN)
+
+Si le GPU n'est pas disponible, le service CPU exploite automatiquement les meilleurs jeux d'instructions
+du processeur (AVX2, AVX512F, AVX512_VNNI, AVX512_BF16, FMA) via oneDNN.
+
+```bash
+docker compose up jupyter-cpu --build
+```
+
+Jupyter CPU accessible sur **http://localhost:8890** (sans token).
+
+### Verification
+
+```bash
+# GPU
+docker compose exec jupyter-gpu python -c \
+  "import tensorflow as tf; print('GPUs:', tf.config.list_physical_devices('GPU'))"
+
+# CPU — doit afficher les optimisations oneDNN au demarrage
+docker compose exec jupyter-cpu python -c \
+  "import tensorflow as tf; print('TF:', tf.__version__)"
+```
+
+### Arreter les conteneurs
+
+```bash
+docker compose down
+```
+
+## Verification rapide (hors Docker)
 
 ```bash
 python -c "import tensorflow as tf; print('TF:', tf.__version__); print('Built with CUDA:', tf.test.is_built_with_cuda()); print('GPUs:', tf.config.list_physical_devices('GPU'))"
