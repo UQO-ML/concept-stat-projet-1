@@ -10,7 +10,8 @@ RUN pip install --no-cache-dir \
     ipykernel \
     setuptools \
     wheel \
-    jupyterlab
+    jupyterlab \
+    tensorflow_datasets 
 
 
 WORKDIR /workspace
