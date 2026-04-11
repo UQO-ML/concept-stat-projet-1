@@ -11,7 +11,10 @@ RUN pip install --no-cache-dir \
     setuptools \
     wheel \
     jupyterlab \
-    tensorflow_datasets 
+    importlib_resources \
+    tensorflow-datasets 
+
+RUN pip install --no-cache-dir "protobuf>=3.20,<5"
 
 
 WORKDIR /workspace
