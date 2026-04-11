@@ -19,18 +19,3 @@ services:
               count: 1
               capabilities: [gpu]
 
-  jupyter-cpu:
-    build:
-      context: .
-      dockerfile: Dockerfile.cpu
-    container_name: concept-stat-cpu
-    ports:
-      - "8890:8888"
-    volumes:
-      - .:/workspace
-    environment:
-      - TF_ENABLE_ONEDNN_OPTS=1
-      - TF_CPP_MIN_LOG_LEVEL=0
-      - OMP_NUM_THREADS=16
-      - TF_NUM_INTEROP_THREADS=4
-      - TF_NUM_INTRAOP_THREADS=16
