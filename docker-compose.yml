@@ -1,0 +1,30 @@
+services:
+  jupyter-gpu:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: concept-stat-gpu
+    ports:
+      - "8889:8888"
+    volumes:
+      - .:/workspace
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+      - TF_CPP_MIN_LOG_LEVEL=3
+      - TF_CPP_MIN_VLOG_LEVEL=3
+      - XLA_FLAGS=--xla_gpu_autotune_level=3
+      - JUPYTER_TOKEN=concept-stat
+    gpus:
+      - driver: nvidia
+        count: all
+        capabilities: [compute, utility]
+    command: >
+      bash -lc "jupyter lab
+      --ip=0.0.0.0
+      --port=8888
+      --no-browser
+      --allow-root
+      --NotebookApp.token=concept-stat
+      --NotebookApp.allow_origin='*'"
+    restart: "no"
+
