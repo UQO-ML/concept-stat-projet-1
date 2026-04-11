@@ -24,4 +24,5 @@ services:
       --allow-root
       --NotebookApp.token=concept-stat
       --NotebookApp.allow_origin='*'"
+    restart: "no"
 
