@@ -11,6 +11,8 @@ services:
     environment:
       - NVIDIA_VISIBLE_DEVICES=all
       - TF_CPP_MIN_LOG_LEVEL=3
+      - TF_CPP_MIN_VLOG_LEVEL=0
+      - XLA_FLAGS=--xla_gpu_autotune_level=0
       - JUPYTER_TOKEN=concept-stat
     gpus:
       - driver: nvidia
