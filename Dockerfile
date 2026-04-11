@@ -1,4 +1,4 @@
-FROM tensorflow/tensorflow:2.21.0-gpu
+FROM nvcr.io/nvidia/tensorflow:25.02-tf2-py3
 
 RUN pip install --no-cache-dir \
     pandas \
@@ -9,7 +9,9 @@ RUN pip install --no-cache-dir \
     jupyter \
     ipykernel \
     setuptools \
-    wheel
+    wheel \
+    jupyterlab
+
 
 WORKDIR /workspace
 EXPOSE 8888

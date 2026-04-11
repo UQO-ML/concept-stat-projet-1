@@ -1,139 +1,180 @@
-## Environnement de développement
+## Projet concept-stat-projet-1
 
-### Prerequis
+Ce README est centre sur `Devoir partie 2` avec 2 parcours:
 
-- **Python** : 3.10+ (recommande 3.11 ou 3.12).
-- **OS** : Linux ou Windows.
-- **GPU (optionnel)** : pilote NVIDIA installe et visible via `nvidia-smi`.
+- GPU avec Docker + NVIDIA (recommande sur Linux NVIDIA)
+- CPU avec environnement Python `venv` (Linux, Windows, macOS)
 
-## Gestion des dependances
+## Structure du depot
 
-Le projet utilise des fichiers `requirements` par profil pour eviter les conflits CPU/GPU:
+```text
+concept-stat-projet-1/
+├── Devoir partie 1/
+├── Devoir partie 2/
+│   ├── DEVOIR Partie 2.ipynb
+│   ├── DEVOIR Partie 2-gpu.ipynb
+│   └── code/
+│       └── visualization.py
+├── Devoirs ID/
+│   └── DEVOIR Partie 2.ipynb
+├── Projet ID/
+├── Dockerfile
+├── docker-compose.yml
+├── requirements.txt
+├── requirements-base.txt
+├── requirements-tf-cpu.txt
+├── requirements-tf-gpu.txt
+└── scripts/
+```
 
-- `requirements.txt` -> alias vers `requirements-base.txt`
-- `requirements-base.txt` -> dependances communes
-- `requirements-tf-cpu.txt` -> profil TensorFlow CPU
-- `requirements-tf-gpu.txt` -> profil TensorFlow GPU
+## Prerequis
 
-### Pourquoi cette separation
+### Commun
 
-`tensorflow-cpu` et `tensorflow[and-cuda]` ne doivent pas etre installes ensemble dans le meme environnement.
+- Python 3.10+ (3.11 recommande)
+- `pip` a jour
+- Jupyter Notebook ou JupyterLab
 
-## Installation avec venv
+### Pour le mode GPU Docker (Linux NVIDIA)
 
-### Linux / macOS
+- Docker Engine + Docker Compose
+- Pilote NVIDIA fonctionnel (`nvidia-smi`)
+- NVIDIA Container Toolkit (`nvidia-container-toolkit` / runtime `nvidia`)
 
-```bash
-cd /chemin/vers/concept-stat-projet-1
+Le service `jupyter-gpu` utilise deja:
+
+- `gpus` avec `driver: nvidia`
+- `NVIDIA_VISIBLE_DEVICES=all`
+
+## Guide principal: Devoir partie 2
+
+### Option A - GPU via Docker (NVIDIA)
+
+Le conteneur s'appuie sur l'image TensorFlow NVIDIA (`nvcr.io/nvidia/tensorflow`) et monte le projet dans `/workspace`.
+
+#### Linux (fish)
+
+```fish
+cd "/home/kilo/Work/Cours - UQO/concept-statistique/concept-stat-projet-1"
+docker compose build jupyter-gpu
+docker compose up jupyter-gpu
+```
+
+Jupyter sera disponible sur:
+
+- URL: `http://localhost:8889`
+- Token: `concept-stat`
+
+Verification GPU depuis un autre terminal:
+
+```fish
+docker compose exec jupyter-gpu python -c "import tensorflow as tf; print(tf.config.list_physical_devices('GPU'))"
+```
+
+Arret:
+
+```fish
+docker compose down
+```
+
+#### Windows (PowerShell)
+
+```powershell
+cd "C:\chemin\vers\concept-stat-projet-1"
+docker compose build jupyter-gpu
+docker compose up jupyter-gpu
+```
+
+#### macOS
+
+Docker fonctionne sur macOS, mais le passthrough GPU NVIDIA n'est pas supporte nativement.
+Sur macOS, utiliser plutot le parcours CPU avec `venv` ci-dessous.
+
+### Option B - CPU via venv (recommande hors Linux NVIDIA)
+
+Installe uniquement le profil CPU.
+
+#### Linux (fish)
+
+```fish
+cd "/home/kilo/Work/Cours - UQO/concept-statistique/concept-stat-projet-1"
 python3 -m venv .venv
-source .venv/bin/activate
-pip install -U pip setuptools wheel
-```
-
-Installe ensuite **un seul** profil TensorFlow:
-
-```bash
-# Base uniquement
+source .venv/bin/activate.fish
+python -m pip install -U pip setuptools wheel
 pip install -r requirements.txt
-
-# Profil TensorFlow CPU
 pip install -r requirements-tf-cpu.txt
-
-# Profil TensorFlow GPU
-pip install -r requirements-tf-gpu.txt
+jupyter lab
 ```
 
-### Windows (PowerShell / CMD)
+Ouvrir ensuite:
+
+- `Devoir partie 2/DEVOIR Partie 2.ipynb`
+- ou `Devoir partie 2/DEVOIR Partie 2-gpu.ipynb` (execution CPU possible, mais notebook concu pour test GPU)
+
+#### Windows
+
+PowerShell:
+
+```powershell
+cd "C:\chemin\vers\concept-stat-projet-1"
+python -m venv .venv
+.venv\Scripts\Activate.ps1
+python -m pip install -U pip setuptools wheel
+pip install -r requirements.txt
+pip install -r requirements-tf-cpu.txt
+jupyter lab
+```
+
+CMD:
 
 ```cmd
 cd C:\chemin\vers\concept-stat-projet-1
 python -m venv .venv
 .venv\Scripts\activate
-pip install -U pip setuptools wheel
-```
-
-Puis installe un seul profil:
-
-```cmd
+python -m pip install -U pip setuptools wheel
 pip install -r requirements.txt
 pip install -r requirements-tf-cpu.txt
+jupyter lab
 ```
 
-Pour Windows + GPU, suis la documentation officielle TensorFlow/NVIDIA pour les bibliotheques CUDA/cuDNN compatibles.
-
-## Activation runtime TensorFlow GPU (Linux)
-
-Si TensorFlow est installe avec `requirements-tf-gpu.txt` mais que `GPU: []` apparait, charge les chemins de bibliotheques du venv:
+#### macOS (zsh/bash)
 
 ```bash
+cd "/chemin/vers/concept-stat-projet-1"
+python3 -m venv .venv
 source .venv/bin/activate
-. ./scripts/tf_gpu_env.sh
+python -m pip install -U pip setuptools wheel
+pip install -r requirements.txt
+pip install -r requirements-tf-cpu.txt
+jupyter lab
 ```
 
-Pour fish:
+## Autres dossiers: execution avec venv
 
-```fish
-source .venv/bin/activate.fish
-source ./scripts/tf_gpu_env.fish
-```
+Pour les dossiers suivants, utiliser le meme `venv` CPU (pas besoin de Docker GPU):
 
-## Docker (recommande)
+- `Devoir partie 1/`
+- `Devoirs ID/`
+- `Projet ID/`
 
-L'approche la plus fiable pour utiliser TensorFlow est via Docker.
-Deux services sont disponibles : **GPU** et **CPU** (fallback optimise).
-
-### Prerequis Docker
-
-- Docker Engine installe (`docker --version`)
-- Pour le service GPU : NVIDIA Container Toolkit (`nvidia-ctk --version`) et pilote NVIDIA (`nvidia-smi`)
-
-### Service GPU
-
-Le conteneur embarque CUDA et cuDNN pre-configures ; seul le pilote NVIDIA de l'hote est requis.
+Exemple d'ouverture apres activation du `venv`:
 
 ```bash
-docker compose up jupyter-gpu --build
+jupyter lab "Devoir partie 1"
+jupyter lab "Devoirs ID"
+jupyter lab "Projet ID"
 ```
 
-Jupyter GPU accessible sur **http://localhost:8889** (sans token).
+## Verification rapide
 
-### Service CPU (fallback AVX512 / oneDNN)
-
-Si le GPU n'est pas disponible, le service CPU exploite automatiquement les meilleurs jeux d'instructions
-du processeur (AVX2, AVX512F, AVX512_VNNI, AVX512_BF16, FMA) via oneDNN.
+Verifier l'environnement Python actif:
 
 ```bash
-docker compose up jupyter-cpu --build
+python -c "import sys; print(sys.executable)"
 ```
 
-Jupyter CPU accessible sur **http://localhost:8890** (sans token).
-
-### Verification
+Verifier TensorFlow:
 
 ```bash
-# GPU
-docker compose exec jupyter-gpu python -c \
-  "import tensorflow as tf; print('GPUs:', tf.config.list_physical_devices('GPU'))"
-
-# CPU — doit afficher les optimisations oneDNN au demarrage
-docker compose exec jupyter-cpu python -c \
-  "import tensorflow as tf; print('TF:', tf.__version__)"
+python -c "import tensorflow as tf; print('TF:', tf.__version__); print('GPUs:', tf.config.list_physical_devices('GPU'))"
 ```
-
-### Arreter les conteneurs
-
-```bash
-docker compose down
-```
-
-## Verification rapide (hors Docker)
-
-```bash
-python -c "import tensorflow as tf; print('TF:', tf.__version__); print('Built with CUDA:', tf.test.is_built_with_cuda()); print('GPUs:', tf.config.list_physical_devices('GPU'))"
-```
-
-Si la liste `GPUs` est vide, verifie:
-
-- le pilote NVIDIA (`nvidia-smi`)
-- l'environnement Python actif (`which python`)
-- le profil installe (`requirements-tf-gpu.txt` vs CPU)
