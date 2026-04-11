@@ -9,3 +9,5 @@ transformers
 torch
 setuptools
 wheel
+importlib_resources
+tensorflow-datasets
