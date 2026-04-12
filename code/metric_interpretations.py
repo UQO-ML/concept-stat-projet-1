@@ -2,11 +2,16 @@
 
 from __future__ import annotations
 
+import math
 from typing import Mapping, Optional, Sequence
 
 import numpy as np
 import pandas as pd
+from pathlib import Path
+
 from sklearn.metrics import classification_report
+
+from run_timestamps import discover_manifest_runs, runs_for_source
 
 
 def print_kernel_macro_summary(
@@ -138,3 +143,82 @@ def print_article_vs_experiment(
         "CSV ou le partitionnement diffère, mais la tendance (ex. poly souvent plus faible, "
         "RBF/sigmoid avec rappel élevé) est ce qu'il faut commenter."
     )
+
+
+def print_crossrun_class_imbalance_bilan(
+    repo_root: Path | str,
+    data_source_filter: str | None = None,
+) -> None:
+    """
+    Compare les runs CLI terminés : pire vs meilleur sur la classe minoritaire
+    « reset-both » (F1 % du meilleur noyau avant grille), et rappelle le déséquilibre des supports test.
+    """
+    root = Path(repo_root).resolve()
+    runs = (
+        runs_for_source(root, data_source_filter)
+        if data_source_filter is not None
+        else discover_manifest_runs(root)
+    )
+    print("\n" + "=" * 70)
+    print("  Bilan multi-runs — déséquilibre des classes et sort « reset-both »")
+    print("=" * 70)
+    if len(runs) < 1:
+        print("  Aucun run manifesté : exécuter `python firewall_svm.py` pour générer des métadonnées.")
+        return
+
+    def reset_both_f1(m: dict) -> float:
+        d = m.get("f1_per_class_best_kernel_pct") or {}
+        v = d.get("reset-both")
+        return float(v) if v is not None else float("nan")
+
+    scored: list[tuple[float, Path, dict]] = []
+    for folder, man in runs:
+        s = reset_both_f1(man)
+        scored.append((s, folder, man))
+
+    valid = [t for t in scored if not math.isnan(t[0])]
+    if not valid:
+        print("  Manifests sans f1_per_class_best_kernel_pct : régénérer les runs avec la version actuelle.")
+        return
+
+    worst = min(valid, key=lambda x: x[0])
+    best = max(valid, key=lambda x: x[0])
+
+    print(
+        "\n• Déséquilibre typique (jeu de test) : la classe « reset-both » a un support "
+        "très faible par rapport à « allow » ; le ratio max/min sur le test est indiqué "
+        "dans chaque manifest (`test_support_ratio`)."
+    )
+
+    def _block(label: str, folder: Path, man: dict) -> None:
+        ct = man.get("class_counts_test") or {}
+        ratio = man.get("test_support_ratio")
+        f1s = man.get("f1_per_class_best_kernel_pct") or {}
+        print(f"\n--- {label} : {folder.name} (fin UTC {man.get('finished_at_utc', '?')}) ---")
+        print(f"  Effectifs test : {ct}")
+        if ratio is not None:
+            print(f"  Ratio max(support)/min(support) sur le test : {ratio:.1f}")
+        print(f"  F1 par classe (meilleur noyau avant GridSearch) % : {f1s}")
+        rb = f1s.get("reset-both")
+        if rb is not None:
+            print(f"  → Indicateur « reset-both » retenu pour le tri : F1 = {rb} %")
+
+    if len(valid) >= 2:
+        ordered = sorted(valid, key=lambda x: x[0])
+        worst = ordered[0]
+        best = ordered[-1]
+        _block("Run le moins favorable pour « reset-both » (F1 plus bas)", worst[1], worst[2])
+        _block("Run le plus favorable pour « reset-both » (F1 plus haut)", best[1], best[2])
+        print(
+            "\n• Interprétation : avec ~54 occurrences totales de « reset-both » dans le CSV, "
+            "le découpage stratifié 80/20 ne laisse qu'une dizaine d'exemples en test ; la variance "
+            "entre runs (même code) peut donc être grande. `class_weight='balanced'` aide au rappel "
+            "mais ne garantit pas un F1 élevé sur une classe aussi rare."
+        )
+    else:
+        _block("Seul run manifesté disponible", valid[0][1], valid[0][2])
+        print(
+            "\n• Pour une comparaison pire/meilleur run sur « reset-both », il faut au moins deux "
+            "exécutions complètes de `firewall_svm.py` (deux dossiers run-* avec manifest) "
+            "dans le périmètre de source sélectionné."
+        )

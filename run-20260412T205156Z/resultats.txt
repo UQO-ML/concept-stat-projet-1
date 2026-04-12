@@ -1,20 +1,21 @@
 =======================================================
   Classification Firewall — SVM Multiclasse
-  Dossier de run : run-001/
+  Dossier de run : run-20260412T205156Z/
+  Horodatage début (UTC) : 2026-04-12T20:51:56.126226Z
 =======================================================
 =======================================================
 ÉTAPE 1 : Chargement des données
 =======================================================
-Source : données simulées (make_classification)
+Source : log2.csv
 Instances : 65532
 Features : 11
 
 Distribution des classes :
 Action
-allow         39095
-deny          13127
-drop           9906
-reset-both     3404
+allow         37640
+deny          14987
+drop          12851
+reset-both       54
 
 =======================================================
 ÉTAPE 2 : Sélection des features
@@ -35,57 +36,57 @@ Normalisation : StandardScaler appliquée
 =======================================================
 
  SVM Linear : 
-F1=61.6%  Précision=60.5%  Rappel=68.3%
+F1=68.7%  Précision=74.3%  Rappel=83.1%
 
  SVM Polynomial : 
-F1=83.6%  Précision=81.9%  Rappel=86.9%
+F1=65.8%  Précision=69.4%  Rappel=75.7%
 
  SVM RBF : 
-F1=86.7%  Précision=84.4%  Rappel=90.1%
+F1=70.5%  Précision=73.2%  Rappel=81.6%
 
  SVM Sigmoid : 
-F1=40.7%  Précision=43.4%  Rappel=45.5%
+F1=63.0%  Précision=68.8%  Rappel=66.7%
 
 =======================================================
 ÉTAPE 5 : Tableau comparatif des performances
 =======================================================
 
                 F1 Score  Precision  Recall
-SVM Linear          61.6       60.5    68.3
-SVM Polynomial      83.6       81.9    86.9
-SVM RBF             86.7       84.4    90.1
-SVM Sigmoid         40.7       43.4    45.5
+SVM Linear          68.7       74.3    83.1
+SVM Polynomial      65.8       69.4    75.7
+SVM RBF             70.5       73.2    81.6
+SVM Sigmoid         63.0       68.8    66.7
 
-  Meilleur modèle (F1) : SVM RBF — F1=86.7%  Précision=84.4%  Rappel=90.1%
+  Meilleur modèle (F1) : SVM RBF — F1=70.5%  Précision=73.2%  Rappel=81.6%
 
 =======================================================
 ÉTAPE 6 : Rapport détaillé — SVM RBF
 =======================================================
               precision    recall  f1-score   support
 
-       allow       0.98      0.93      0.95      7819
-        deny       0.91      0.94      0.93      2626
-        drop       0.89      0.89      0.89      1981
-  reset-both       0.59      0.84      0.69       681
+       allow       1.00      0.97      0.98      7528
+        deny       0.97      0.75      0.85      2998
+        drop       0.95      1.00      0.97      2570
+  reset-both       0.01      0.55      0.02        11
 
     accuracy                           0.92     13107
-   macro avg       0.84      0.90      0.87     13107
-weighted avg       0.93      0.92      0.93     13107
+   macro avg       0.73      0.82      0.70     13107
+weighted avg       0.98      0.92      0.95     13107
 
 
 =======================================================
 ÉTAPES 7-8 : Graphiques
 =======================================================
-Sauvegardé : run-001/comparaison_svm.png
-Sauvegardé : run-001/matrice_confusion.png
+Sauvegardé : run-20260412T205156Z/comparaison_svm.png
+Sauvegardé : run-20260412T205156Z/matrice_confusion.png
 
 =======================================================
 ÉTAPE 9 : Courbes ROC par classe
 =======================================================
-Sauvegardé : run-001/roc_allow.png
-Sauvegardé : run-001/roc_deny.png
-Sauvegardé : run-001/roc_drop.png
-Sauvegardé : run-001/roc_reset_both.png
+Sauvegardé : run-20260412T205156Z/roc_allow.png
+Sauvegardé : run-20260412T205156Z/roc_deny.png
+Sauvegardé : run-20260412T205156Z/roc_drop.png
+Sauvegardé : run-20260412T205156Z/roc_reset_both.png
 
 =======================================================
 ÉTAPE 10 : Optimisation hyperparamètres — SVM RBF
@@ -102,22 +103,26 @@ Données d'entraînement : jeu complet (52425 instances)
 
 Meilleurs paramètres trouvés :
     C = 10
-    gamma = 0.1
-F1 moyen (validation croisée) = 88.3%
+    gamma = scale
+F1 moyen (validation croisée) = 70.7%
 
 Rapport détaillé après optimisation :
               precision    recall  f1-score   support
 
-       allow       0.98      0.95      0.96      7819
-        deny       0.93      0.95      0.94      2626
-        drop       0.93      0.90      0.91      1981
-  reset-both       0.65      0.84      0.73       681
+       allow       1.00      0.99      1.00      7528
+        deny       0.99      0.72      0.83      2998
+        drop       0.97      1.00      0.99      2570
+  reset-both       0.01      0.64      0.02        11
 
-    accuracy                           0.94     13107
-   macro avg       0.87      0.91      0.89     13107
-weighted avg       0.94      0.94      0.94     13107
+    accuracy                           0.93     13107
+   macro avg       0.74      0.84      0.71     13107
+weighted avg       0.99      0.93      0.96     13107
 
+
+Sur le jeu test (macro %) : P=74.2 R=83.6 F1=70.7
+
+Manifest JSON : run-20260412T205156Z/run_manifest.json
 
 =======================================================
-TERMINÉ — Résultats sauvegardés dans : run-001/
+TERMINÉ — Résultats sauvegardés dans : run-20260412T205156Z/
 =======================================================

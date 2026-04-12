@@ -9,10 +9,11 @@
 # INSTALLATION DES LIBRAIRIES
 # pip install -r requirement.txt
 # ==============================================================
-import glob
+import json
 import os
 import sys
 import warnings
+from datetime import datetime, timezone
 
 _ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 _CODE_DIR = os.path.join(_ROOT_DIR, "code")
@@ -67,6 +68,13 @@ KERNEL_DISPLAY_NAMES = {
 }
 
 # Table III — F. Ertam & M. Kaya, valeurs numériques exactes de l'article (macro %)
+RUN_MANIFEST_JSON = "run_manifest.json"
+
+
+def _utc_now_iso() -> str:
+    return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+
+
 ARTICLE_TABLE_III = {
     "SVM Linear": {"F1 Score": 75.4, "Precision": 67.5, "Recall": 85.3},
     "SVM Polynomial": {"F1 Score": 53.6, "Precision": 61.8, "Recall": 47.4},
@@ -91,14 +99,24 @@ def _ensure_log(log):
 # ============================================================
 def create_run_folder():
     """
-    Crée un dossier run-001, run-002, ... selon les runs déjà existants.
-    Retourne le chemin du nouveau dossier.
+    Crée un dossier horodaté run-YYYYMMDDTHHMMSSZ (UTC), suffixe -01 si collision.
+    Permet d'identifier sans ambiguïté la fraîcheur des résultats (voir run_manifest.json).
     """
-    existing = sorted(glob.glob("run-[0-9][0-9][0-9]"))
-    next_id = len(existing) + 1
-    folder = f"run-{next_id:03d}"
+    ts = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    base = f"run-{ts}"
+    folder = base
+    n = 1
+    while os.path.exists(folder):
+        folder = f"{base}-{n:02d}"
+        n += 1
     os.makedirs(folder, exist_ok=True)
     return folder
+
+
+def _write_run_manifest(run_folder: str, manifest: dict) -> None:
+    path = os.path.join(run_folder, RUN_MANIFEST_JSON)
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(manifest, f, indent=2, ensure_ascii=False)
 
 
 def make_logger(run_folder):
@@ -508,20 +526,54 @@ def main(data_source=None):
             - None → données simulées
             - "path/to/file" → fichier CSV local
             - "https://..." → URL vers un fichier CSV
+
+    Écrit ``run_manifest.json`` dans le dossier de run (horodatage UTC, effectifs,
+    métriques macro par noyau, F1 par classe pour le meilleur noyau et après GridSearch).
     """
     run_folder = create_run_folder()
     log = make_logger(run_folder)
 
+    manifest: dict = {
+        "run_folder": run_folder,
+        "started_at_utc": _utc_now_iso(),
+        "data_source": data_source,
+        "random_state": RANDOM_STATE,
+        "class_names": list(CLASS_NAMES),
+    }
+
     log("=" * 55)
     log("  Classification Firewall — SVM Multiclasse")
     log(f"  Dossier de run : {run_folder}/")
+    log(f"  Horodatage début (UTC) : {manifest['started_at_utc']}")
     log("=" * 55)
 
     df = load_data(log, source=data_source)
     x, y_encoded = select_features(log, df)
     x_train, x_test, y_train, y_test = prepare_data(log, x, y_encoded)
+
+    full_counts = df["Action"].value_counts().reindex(CLASS_NAMES, fill_value=0)
+    manifest["class_counts_full"] = {str(k): int(v) for k, v in full_counts.items()}
+
+    manifest["class_counts_train"] = {
+        CLASS_NAMES[i]: int((y_train == i).sum()) for i in range(len(CLASS_NAMES))
+    }
+    manifest["class_counts_test"] = {
+        CLASS_NAMES[i]: int((y_test == i).sum()) for i in range(len(CLASS_NAMES))
+    }
+    _tv = list(manifest["class_counts_test"].values())
+    manifest["test_support_ratio"] = float(max(_tv) / max(min(_tv), 1))
+
     results, models, y_preds = train_svms(log, x_train, y_train, x_test, y_test)
     results_df, best_name = compare_results(log, results)
+
+    manifest["kernel_results_macro_pct"] = {k: dict(v) for k, v in results.items()}
+    manifest["best_kernel_display_name"] = best_name
+
+    y_best = y_preds[best_name]
+    f1_pc = f1_score(y_test, y_best, average=None, zero_division=0)
+    manifest["f1_per_class_best_kernel_pct"] = {
+        CLASS_NAMES[i]: round(float(f1_pc[i]) * 100, 2) for i in range(len(CLASS_NAMES))
+    }
 
     detailed_report(log, best_name, y_test, y_preds)
 
@@ -532,7 +584,16 @@ def main(data_source=None):
     plot_confusion_matrix(log, run_folder, best_name, y_test, y_preds)
     plot_roc_curves(log, run_folder, models, x_test, y_test)
 
-    optimize_best_model(log, best_name, x_train, y_train, x_test, y_test)
+    opt_est = optimize_best_model(log, best_name, x_train, y_train, x_test, y_test)
+    y_pred_opt = opt_est.predict(x_test)
+    f1_pc_opt = f1_score(y_test, y_pred_opt, average=None, zero_division=0)
+    manifest["f1_per_class_after_gridsearch_pct"] = {
+        CLASS_NAMES[i]: round(float(f1_pc_opt[i]) * 100, 2) for i in range(len(CLASS_NAMES))
+    }
+
+    manifest["finished_at_utc"] = _utc_now_iso()
+    _write_run_manifest(run_folder, manifest)
+    log(f"\nManifest JSON : {os.path.join(run_folder, RUN_MANIFEST_JSON)}")
 
     log("\n" + "=" * 55)
     log(f"TERMINÉ — Résultats sauvegardés dans : {run_folder}/")
@@ -542,7 +603,19 @@ def main(data_source=None):
 
 
 if __name__ == "__main__":
-    # python firewall_svm.py          → données simulées
-    # python firewall_svm.py log2.csv → fichier local
-    source = sys.argv[1] if len(sys.argv) > 1 else None
+    # python firewall_svm.py              → utilise log2.csv si trouvé, sinon simulation
+    # python firewall_svm.py log2.csv     → fichier local explicite
+    # python firewall_svm.py https://...  → URL explicite
+    if len(sys.argv) > 1:
+        source = sys.argv[1]
+    else:
+        candidates = [
+            "log2.csv",
+            os.path.join(_ROOT_DIR, "log2.csv"),
+        ]
+        source = next((p for p in candidates if os.path.exists(p)), None)
+        if source is None:
+            print("[firewall_svm] Aucun log2.csv trouvé; bascule sur données simulées.")
+        else:
+            print(f"[firewall_svm] Source auto-détectée: {source}")
     main(data_source=source)
