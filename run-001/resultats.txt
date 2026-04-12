@@ -44,3 +44,59 @@ F1=83.6%  Précision=81.9%  Rappel=86.9%
 F1=86.7%  Précision=84.4%  Rappel=90.1%
 
  SVM Sigmoid : 
+F1=40.7%  Précision=43.4%  Rappel=45.5%
+
+=======================================================
+ÉTAPE 5 : Tableau comparatif des performances
+=======================================================
+
+                F1 Score  Precision  Recall
+SVM Linear          61.6       60.5    68.3
+SVM Polynomial      83.6       81.9    86.9
+SVM RBF             86.7       84.4    90.1
+SVM Sigmoid         40.7       43.4    45.5
+
+  Meilleur modèle (F1) : SVM RBF — F1=86.7%  Précision=84.4%  Rappel=90.1%
+
+=======================================================
+ÉTAPE 6 : Rapport détaillé — SVM RBF
+=======================================================
+              precision    recall  f1-score   support
+
+       allow       0.98      0.93      0.95      7819
+        deny       0.91      0.94      0.93      2626
+        drop       0.89      0.89      0.89      1981
+  reset-both       0.59      0.84      0.69       681
+
+    accuracy                           0.92     13107
+   macro avg       0.84      0.90      0.87     13107
+weighted avg       0.93      0.92      0.93     13107
+
+
+=======================================================
+ÉTAPES 7-8 : Graphiques
+=======================================================
+Sauvegardé : run-001/comparaison_svm.png
+Sauvegardé : run-001/matrice_confusion.png
+
+=======================================================
+ÉTAPE 9 : Courbes ROC par classe
+=======================================================
+Sauvegardé : run-001/roc_allow.png
+Sauvegardé : run-001/roc_deny.png
+Sauvegardé : run-001/roc_drop.png
+Sauvegardé : run-001/roc_reset_both.png
+
+=======================================================
+ÉTAPE 10 : Optimisation hyperparamètres — SVM RBF
+=======================================================
+
+Kernel optimisé : rbf
+Paramètres testés :
+    • C : [0.1, 1, 10, 100]
+    • gamma : ['scale', 'auto', 0.001, 0.01, 0.1]
+Nombre de combinaisons : 20
+Validation croisée : 5 plis (cv=5)
+Métrique de sélection : F1 macro
+Données d'entraînement : jeu complet (52425 instances)
+
