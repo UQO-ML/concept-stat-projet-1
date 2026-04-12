@@ -236,12 +236,6 @@ Meilleur F1 macro global    : seuil optimal (0.0430)     → 0.815
 Meilleur rappel reset-both  : seuil 0.50 (défaut)        → 0.636
 Meilleur F1 reset-both      : seuil optimal (0.0430)     → 0.296
 
-Note : abaisser le seuil améliore le rappel de reset-both
-mais dégrade la précision globale (plus de faux positifs).
-Choisir le seuil selon la priorité métier :
-  → Sécurité maximale (ne rien manquer) : seuil bas
-  → Moins de fausses alertes            : seuil 0.50
-
 =======================================================
 TERMINÉ — Résultats sauvegardés dans : run-004/
 =======================================================

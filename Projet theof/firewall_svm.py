@@ -627,11 +627,6 @@ def optimize_best_model(log, best_name, x_train, y_train, x_test, y_test):
     log(f"Meilleur rappel reset-both  : seuil {best_rb_recall_cfg:<20} → {best_rb_recall_val:.3f}")
     log(f"Meilleur F1 reset-both      : seuil {best_rb_f1_cfg:<20} → {best_rb_f1_val:.3f}")
     log("")
-    log("Note : abaisser le seuil améliore le rappel de reset-both")
-    log("mais dégrade la précision globale (plus de faux positifs).")
-    log("Choisir le seuil selon la priorité métier :")
-    log("  → Sécurité maximale (ne rien manquer) : seuil bas")
-    log("  → Moins de fausses alertes            : seuil 0.50")
 
     return best_estimator
 
