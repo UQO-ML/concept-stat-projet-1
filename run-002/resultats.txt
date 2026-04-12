@@ -1,6 +1,6 @@
 =======================================================
   Classification Firewall — SVM Multiclasse
-  Dossier de run : run-001/
+  Dossier de run : run-002/
 =======================================================
 =======================================================
 ÉTAPE 1 : Chargement des données
@@ -76,16 +76,16 @@ weighted avg       0.93      0.92      0.93     13107
 =======================================================
 ÉTAPES 7-8 : Graphiques
 =======================================================
-Sauvegardé : run-001/comparaison_svm.png
-Sauvegardé : run-001/matrice_confusion.png
+Sauvegardé : run-002/comparaison_svm.png
+Sauvegardé : run-002/matrice_confusion.png
 
 =======================================================
 ÉTAPE 9 : Courbes ROC par classe
 =======================================================
-Sauvegardé : run-001/roc_allow.png
-Sauvegardé : run-001/roc_deny.png
-Sauvegardé : run-001/roc_drop.png
-Sauvegardé : run-001/roc_reset_both.png
+Sauvegardé : run-002/roc_allow.png
+Sauvegardé : run-002/roc_deny.png
+Sauvegardé : run-002/roc_drop.png
+Sauvegardé : run-002/roc_reset_both.png
 
 =======================================================
 ÉTAPE 10 : Optimisation hyperparamètres — SVM RBF
@@ -100,24 +100,3 @@ Validation croisée : 5 plis (cv=5)
 Métrique de sélection : F1 macro
 Données d'entraînement : jeu complet (52425 instances)
 
-Meilleurs paramètres trouvés :
-    C = 10
-    gamma = 0.1
-F1 moyen (validation croisée) = 88.3%
-
-Rapport détaillé après optimisation :
-              precision    recall  f1-score   support
-
-       allow       0.98      0.95      0.96      7819
-        deny       0.93      0.95      0.94      2626
-        drop       0.93      0.90      0.91      1981
-  reset-both       0.65      0.84      0.73       681
-
-    accuracy                           0.94     13107
-   macro avg       0.87      0.91      0.89     13107
-weighted avg       0.94      0.94      0.94     13107
-
-
-=======================================================
-TERMINÉ — Résultats sauvegardés dans : run-001/
-=======================================================
