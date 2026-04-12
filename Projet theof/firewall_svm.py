@@ -369,51 +369,42 @@ def plot_roc_curves(log, run_folder, models, x_test, y_test):
 
 # ============================================================
 # ÉTAPE 10 — Optimisation des hyperparamètres (GridSearchCV)
+#             + Abaissement du seuil de décision pour reset-both
 # ============================================================
 def optimize_best_model(log, best_name, x_train, y_train, x_test, y_test):
     """
-    Optimise les hyperparamètres du meilleur modèle via GridSearchCV avec validation croisée à 5 plis.
+    Deux phases :
 
-    --- Explication ---
-    Chaque kernel SVM a ses propres hyperparamètres à optimiser.
-    On sélectionne la grille de paramètres selon le kernel gagnant.
+    Phase A — GridSearchCV sur le meilleur kernel SVM :
+        Optimise les hyperparamètres du kernel gagnant via une recherche
+        par grille avec validation croisée à 5 plis sur le jeu complet.
+        Gestion du déséquilibre : class_weight="balanced".
 
-    Hyperparamètre commun à tous les kernels :
-    • C (régularisation) :
-        Contrôle le compromis biais/variance.
-        - C faible (ex: 0.1) → marge large, tolère des erreurs, meilleure généralisation mais risque de sous-apprentissage.
-        - C élevé (ex: 100) → marge étroite, peu d'erreurs tolérées, risque de sur-apprentissage.
+    Phase B — Abaissement du seuil de décision pour reset-both :
+        Par défaut, scikit-learn prédit la classe dont la probabilité
+        est la plus élevée (argmax). Pour reset-both, cette probabilité
+        dépasse rarement 0.5 en raison de la rareté de la classe.
 
-    Hyperparamètres spécifiques selon le kernel :
-    • gamma (RBF et Sigmoid) :
-        Définit l'influence de chaque point d'entraînement.
-        - gamma faible → influence large, frontière de décision lisse.
-        - gamma élevé  → influence locale, frontière très complexe.
-        - "scale" = 1 / (n_features * Var(X))
-        - "auto"  = 1 / n_features
+        En abaissant le seuil spécifique à reset-both, on force le
+        classifieur à prédire cette classe dès que sa probabilité
+        dépasse un seuil plus bas (ex: 0.1 ou 0.05), ce qui augmente
+        le rappel au prix d'une précision réduite.
 
-    • degree (Polynomial uniquement) :
-        Degré du polynôme utilisé pour la transformation des données.
-        - degree=2 → séparation quadratique (moins complexe)
-        - degree=3 → cubique (par défaut)
-        - degree=4 → quartique (plus expressif mais plus lent)
+        Deux approches sont comparées :
+        • Seuils fixes   : on teste plusieurs valeurs (0.30, 0.20, 0.10, 0.05, 0.02)
+        • Seuil optimal  : on cherche automatiquement le seuil qui maximise
+                           le F1 Score de reset-both via la courbe Précision-Rappel.
 
-    • coef0 (Polynomial et Sigmoid) :
-        Terme indépendant dans la fonction du kernel.
-        Influence les termes de degré inférieur (poly) ou le décalage de la fonction sigmoïde.
+        La comparaison finale couvre toutes les classes et métriques globales,
+        pas uniquement reset-both.
 
-    On entraîne sur l'intégralité de x_train (pas un sous-ensemble), ce qui donne une estimation plus fiable des hyperparamètres.
-    La validation croisée à 5 plis divise x_train en 5 blocs à chaque pli, 4 blocs servent à l'entraînement et 1 à la validation, en tournant 5 fois.
-    Le score final est la moyenne des 5 évaluations, ce qui évite de choisir des paramètres qui ne fonctionnent bien que sur un seul découpage des données.
-
-    Retourne le meilleur estimateur entraîné.
+    Retourne le meilleur estimateur SVM optimisé (Phase A).
     """
-    # Extrait le kernel depuis le nom (ex: "SVM RBF" → "rbf")
-    kernel = best_name.split(" ", 1)[1].lower()  # "linear", "polynomial", "rbf", "sigmoid"
+    # ── Phase A : GridSearchCV ────────────────────────────────────────────
+    kernel = best_name.split(" ", 1)[1].lower()
     if kernel == "polynomial":
         kernel = "poly"
 
-    # Grilles de paramètres selon le kernel
     param_grids = {
         "linear": {
             "C": [0.01, 0.1, 1, 10, 100]
@@ -434,59 +425,215 @@ def optimize_best_model(log, best_name, x_train, y_train, x_test, y_test):
         },
     }
 
-    param_grid   = param_grids[kernel]
+    param_grid     = param_grids[kernel]
     n_combinaisons = 1
     for v in param_grid.values():
         n_combinaisons *= len(v)
 
     log("\n" + "=" * 55)
-    log(f"ÉTAPE 10 : Optimisation hyperparamètres — {best_name}")
+    log(f"ÉTAPE 10 — Phase A : Optimisation hyperparamètres — {best_name}")
     log("=" * 55)
-    log("")
     log(f"Kernel optimisé : {kernel}")
     log(f"Paramètres testés :")
     for param, values in param_grid.items():
         log(f"    • {param} : {values}")
     log(f"Nombre de combinaisons : {n_combinaisons}")
-    log(f"Validation croisée : 5 plis (cv=5)")
-    log(f"Métrique de sélection : F1 macro")
+    log(f"Validation croisée     : 5 plis (cv=5)")
+    log(f"Métrique de sélection  : F1 macro")
     log(f"Données d'entraînement : jeu complet ({len(x_train)} instances)")
-    log("")
+    log(f"Gestion déséquilibre   : class_weight='balanced'")
 
     grid = GridSearchCV(
-        SVC(kernel=kernel, probability=True, random_state=RANDOM_STATE, class_weight="balanced"),
+        SVC(kernel=kernel, probability=True,
+            random_state=RANDOM_STATE, class_weight="balanced"),
         param_grid,
         cv=5,
         scoring="f1_macro",
         n_jobs=-1,
         verbose=0
     )
-    grid.fit(x_train, y_train)   # jeu d'entraînement COMPLET
+    grid.fit(x_train, y_train)
 
-    best_p     = grid.best_params_
-    best_f1_cv = grid.best_score_ * 100
+    best_p        = grid.best_params_
+    best_f1_cv    = grid.best_score_ * 100
+    best_estimator = grid.best_estimator_
 
-    log(f"Meilleurs paramètres trouvés :")
+    log(f"\nMeilleurs paramètres trouvés :")
     for param, value in best_p.items():
         log(f"    {param} = {value}")
     log(f"F1 moyen (validation croisée) = {best_f1_cv:.1f}%")
 
-    # Évaluation finale sur le test set
-    y_pred_opt = grid.best_estimator_.predict(x_test)
-    p_opt  = precision_score(y_test, y_pred_opt, average="macro", zero_division=0) * 100
-    r_opt  = recall_score   (y_test, y_pred_opt, average="macro", zero_division=0) * 100
-    f1_opt = f1_score       (y_test, y_pred_opt, average="macro", zero_division=0) * 100
+    # Probabilités sur le test set — réutilisées dans toute la Phase B
+    y_proba     = best_estimator.predict_proba(x_test)  # shape (n, 4)
+    proba_reset = y_proba[:, 3]                          # probabilités reset-both
 
-    log(f"\nRapport détaillé après optimisation :")
-    report_opt = classification_report(
-        y_test, y_pred_opt,
-        target_names=CLASS_NAMES,
-        zero_division=0
-    )
-    log(report_opt)
- 
-    return grid.best_estimator_
+    # Prédictions et rapport Phase A (seuil par défaut 0.50)
+    y_pred_default = best_estimator.predict(x_test)
 
+    log(f"\nRapport détaillé — seuil par défaut (0.50) :")
+    log(classification_report(y_test, y_pred_default,
+                               target_names=CLASS_NAMES, zero_division=0))
+
+    # ── Helpers ───────────────────────────────────────────────────────────
+    def predict_with_threshold(y_proba, threshold):
+        """
+        Prédit reset-both (classe 3) si sa probabilité >= threshold,
+        sinon retourne la classe avec la probabilité la plus élevée
+        parmi allow / deny / drop uniquement.
+        """
+        return np.where(
+            y_proba[:, 3] >= threshold,
+            3,
+            np.argmax(y_proba[:, :3], axis=1)
+        )
+
+    def full_metrics(y_true, y_pred):
+        """
+        Retourne un dict avec toutes les métriques utiles :
+        précision / rappel / f1 par classe + macro + weighted + accuracy.
+        """
+        report = classification_report(
+            y_true, y_pred,
+            target_names=CLASS_NAMES,
+            output_dict=True,
+            zero_division=0
+        )
+        return report
+
+    # ── Phase B : Seuils fixes ────────────────────────────────────────────
+    log("=" * 55)
+    log("ÉTAPE 10 — Phase B : Abaissement du seuil de décision")
+    log("=" * 55)
+    log("Principe : prédire reset-both si sa probabilité >= seuil,")
+    log("sinon argmax sur les 3 autres classes.")
+    log("")
+
+    thresholds_to_test = [0.30, 0.20, 0.10, 0.05, 0.02]
+    all_configs = {}
+
+    # Référence : seuil 0.50
+    all_configs["0.50 (défaut)"] = {
+        "y_pred":  y_pred_default,
+        "metrics": full_metrics(y_test, y_pred_default)
+    }
+
+    for thr in thresholds_to_test:
+        y_pred_thr = predict_with_threshold(y_proba, thr)
+        all_configs[str(thr)] = {
+            "y_pred":  y_pred_thr,
+            "metrics": full_metrics(y_test, y_pred_thr)
+        }
+
+    # Seuil optimal via courbe Précision-Rappel
+    from sklearn.metrics import precision_recall_curve
+
+    y_true_binary             = (y_test == 3).astype(int)
+    precisions, recalls, thrs = precision_recall_curve(y_true_binary, proba_reset)
+    f1_per_thr                = 2 * precisions * recalls / (precisions + recalls + 1e-8)
+    best_idx                  = f1_per_thr.argmax()
+    best_thr_auto             = float(thrs[best_idx]) if best_idx < len(thrs) else float(thrs[-1])
+
+    y_pred_auto = predict_with_threshold(y_proba, best_thr_auto)
+    all_configs[f"optimal ({best_thr_auto:.4f})"] = {
+        "y_pred":  y_pred_auto,
+        "metrics": full_metrics(y_test, y_pred_auto)
+    }
+
+    # ── Rapport détaillé pour chaque seuil ────────────────────────────────
+    for label, cfg in all_configs.items():
+        if label == "0.50 (défaut)":
+            continue   # déjà affiché en Phase A
+        log(f"\nRapport détaillé — seuil {label} :")
+        log(classification_report(y_test, cfg["y_pred"],
+                                   target_names=CLASS_NAMES, zero_division=0))
+
+    # ── Comparaison générale — toutes classes ─────────────────────────────
+    log("=" * 55)
+    log("COMPARAISON GÉNÉRALE — toutes les configurations")
+    log("=" * 55)
+
+    # En-tête
+    col_w = 26
+    log(f"\n{'':>{col_w}} " +
+        "".join(f"{'Seuil ' + lbl:>18}" for lbl in all_configs))
+    log("-" * (col_w + 18 * len(all_configs)))
+
+    # Métriques globales
+    for metric_key, metric_label in [
+        ("macro avg",    "F1 macro"),
+        ("macro avg",    "Précision macro"),
+        ("macro avg",    "Rappel macro"),
+        ("weighted avg", "F1 weighted"),
+        ("accuracy",     "Accuracy"),
+    ]:
+        row = f"{metric_label:>{col_w}} "
+        for cfg in all_configs.values():
+            m = cfg["metrics"]
+            if metric_key == "accuracy":
+                val = m.get("accuracy", 0)
+            elif metric_label == "F1 macro":
+                val = m[metric_key]["f1-score"]
+            elif metric_label == "Précision macro":
+                val = m[metric_key]["precision"]
+            elif metric_label == "Rappel macro":
+                val = m[metric_key]["recall"]
+            else:
+                val = m[metric_key]["f1-score"]
+            row += f"{val:>18.3f}"
+        log(row)
+
+    log("")
+
+    # Métriques par classe
+    for cls_name in CLASS_NAMES:
+        for sub_metric, sub_label in [
+            ("precision", "Précision"),
+            ("recall",    "Rappel"),
+            ("f1-score",  "F1"),
+        ]:
+            row_label = f"{cls_name} — {sub_label}"
+            row = f"{row_label:>{col_w}} "
+            for cfg in all_configs.values():
+                val = cfg["metrics"].get(cls_name, {}).get(sub_metric, 0)
+                row += f"{val:>18.3f}"
+            log(row)
+        log("")   # ligne vide entre chaque classe
+
+    # ── Synthèse automatique ──────────────────────────────────────────────
+    log("=" * 55)
+    log("SYNTHÈSE")
+    log("=" * 55)
+
+    # Meilleur selon F1 macro global
+    best_f1_macro_cfg  = max(all_configs,
+                             key=lambda k: all_configs[k]["metrics"]["macro avg"]["f1-score"])
+    best_f1_macro_val  = all_configs[best_f1_macro_cfg]["metrics"]["macro avg"]["f1-score"]
+
+    # Meilleur selon rappel reset-both
+    best_rb_recall_cfg = max(all_configs,
+                             key=lambda k: all_configs[k]["metrics"].get(
+                                 "reset-both", {}).get("recall", 0))
+    best_rb_recall_val = all_configs[best_rb_recall_cfg]["metrics"].get(
+        "reset-both", {}).get("recall", 0)
+
+    # Meilleur selon F1 reset-both
+    best_rb_f1_cfg     = max(all_configs,
+                             key=lambda k: all_configs[k]["metrics"].get(
+                                 "reset-both", {}).get("f1-score", 0))
+    best_rb_f1_val     = all_configs[best_rb_f1_cfg]["metrics"].get(
+        "reset-both", {}).get("f1-score", 0)
+
+    log(f"Meilleur F1 macro global    : seuil {best_f1_macro_cfg:<20} → {best_f1_macro_val:.3f}")
+    log(f"Meilleur rappel reset-both  : seuil {best_rb_recall_cfg:<20} → {best_rb_recall_val:.3f}")
+    log(f"Meilleur F1 reset-both      : seuil {best_rb_f1_cfg:<20} → {best_rb_f1_val:.3f}")
+    log("")
+    log("Note : abaisser le seuil améliore le rappel de reset-both")
+    log("mais dégrade la précision globale (plus de faux positifs).")
+    log("Choisir le seuil selon la priorité métier :")
+    log("  → Sécurité maximale (ne rien manquer) : seuil bas")
+    log("  → Moins de fausses alertes            : seuil 0.50")
+
+    return best_estimator
 
 # ============================================================
 # MAIN

@@ -1,0 +1,247 @@
+=======================================================
+  Classification Firewall — SVM Multiclasse
+  Dossier de run : run-004/
+=======================================================
+=======================================================
+ÉTAPE 1 : Chargement des données
+=======================================================
+Source : log2.csv
+Instances : 65532
+Features : 11
+
+Distribution des classes :
+Action
+allow         37640
+deny          14987
+drop          12851
+reset-both       54
+
+=======================================================
+ÉTAPE 2 : Sélection des features
+=======================================================
+11 features numériques sélectionnées
+Variable cible : 'Action' (4 classes)
+Données personnelles : exclues
+
+=======================================================
+ÉTAPE 3 : Préparation des données
+=======================================================
+Train : 52425 instances (80%)
+Test : 13107 instances (20%)
+Normalisation : StandardScaler appliquée
+
+=======================================================
+ÉTAPE 4 : Entraînement des 4 classifieurs SVM
+=======================================================
+
+ SVM Linear : 
+F1=68.7%  Précision=74.3%  Rappel=83.1%
+
+ SVM Polynomial : 
+F1=65.8%  Précision=69.4%  Rappel=75.7%
+
+ SVM RBF : 
+F1=70.5%  Précision=73.2%  Rappel=81.6%
+
+ SVM Sigmoid : 
+F1=63.0%  Précision=68.8%  Rappel=66.7%
+
+=======================================================
+ÉTAPE 5 : Tableau comparatif des performances
+=======================================================
+
+                F1 Score  Precision  Recall
+SVM Linear          68.7       74.3    83.1
+SVM Polynomial      65.8       69.4    75.7
+SVM RBF             70.5       73.2    81.6
+SVM Sigmoid         63.0       68.8    66.7
+
+  Meilleur modèle (F1) : SVM RBF — F1=70.5%  Précision=73.2%  Rappel=81.6%
+
+=======================================================
+ÉTAPE 6 : Rapport détaillé — SVM RBF
+=======================================================
+              precision    recall  f1-score   support
+
+       allow       1.00      0.97      0.98      7528
+        deny       0.97      0.75      0.85      2998
+        drop       0.95      1.00      0.97      2570
+  reset-both       0.01      0.55      0.02        11
+
+    accuracy                           0.92     13107
+   macro avg       0.73      0.82      0.70     13107
+weighted avg       0.98      0.92      0.95     13107
+
+
+=======================================================
+ÉTAPES 7-8 : Graphiques
+=======================================================
+Sauvegardé : run-004/comparaison_svm.png
+Sauvegardé : run-004/matrice_confusion.png
+
+=======================================================
+ÉTAPE 9 : Courbes ROC par classe
+=======================================================
+Sauvegardé : run-004/roc_allow.png
+Sauvegardé : run-004/roc_deny.png
+Sauvegardé : run-004/roc_drop.png
+Sauvegardé : run-004/roc_reset_both.png
+
+=======================================================
+ÉTAPE 10 — Phase A : Optimisation hyperparamètres — SVM RBF
+=======================================================
+Kernel optimisé : rbf
+Paramètres testés :
+    • C : [0.1, 1, 10, 100]
+    • gamma : ['scale', 'auto', 0.001, 0.01, 0.1]
+Nombre de combinaisons : 20
+Validation croisée     : 5 plis (cv=5)
+Métrique de sélection  : F1 macro
+Données d'entraînement : jeu complet (52425 instances)
+Gestion déséquilibre   : class_weight='balanced'
+
+Meilleurs paramètres trouvés :
+    C = 10
+    gamma = scale
+F1 moyen (validation croisée) = 70.7%
+
+Rapport détaillé — seuil par défaut (0.50) :
+              precision    recall  f1-score   support
+
+       allow       1.00      0.99      1.00      7528
+        deny       0.99      0.72      0.83      2998
+        drop       0.97      1.00      0.99      2570
+  reset-both       0.01      0.64      0.02        11
+
+    accuracy                           0.93     13107
+   macro avg       0.74      0.84      0.71     13107
+weighted avg       0.99      0.93      0.96     13107
+
+=======================================================
+ÉTAPE 10 — Phase B : Abaissement du seuil de décision
+=======================================================
+Principe : prédire reset-both si sa probabilité >= seuil,
+sinon argmax sur les 3 autres classes.
+
+
+Rapport détaillé — seuil 0.3 :
+              precision    recall  f1-score   support
+
+       allow       1.00      1.00      1.00      7528
+        deny       0.99      0.98      0.98      2998
+        drop       0.97      1.00      0.99      2570
+  reset-both       0.00      0.00      0.00        11
+
+    accuracy                           0.99     13107
+   macro avg       0.74      0.74      0.74     13107
+weighted avg       0.99      0.99      0.99     13107
+
+
+Rapport détaillé — seuil 0.2 :
+              precision    recall  f1-score   support
+
+       allow       1.00      1.00      1.00      7528
+        deny       0.99      0.98      0.98      2998
+        drop       0.97      1.00      0.99      2570
+  reset-both       0.00      0.00      0.00        11
+
+    accuracy                           0.99     13107
+   macro avg       0.74      0.74      0.74     13107
+weighted avg       0.99      0.99      0.99     13107
+
+
+Rapport détaillé — seuil 0.1 :
+              precision    recall  f1-score   support
+
+       allow       1.00      1.00      1.00      7528
+        deny       0.99      0.98      0.98      2998
+        drop       0.97      1.00      0.99      2570
+  reset-both       0.12      0.09      0.11        11
+
+    accuracy                           0.99     13107
+   macro avg       0.77      0.77      0.77     13107
+weighted avg       0.99      0.99      0.99     13107
+
+
+Rapport détaillé — seuil 0.05 :
+              precision    recall  f1-score   support
+
+       allow       1.00      0.99      1.00      7528
+        deny       0.99      0.98      0.98      2998
+        drop       0.97      1.00      0.99      2570
+  reset-both       0.20      0.27      0.23        11
+
+    accuracy                           0.99     13107
+   macro avg       0.79      0.81      0.80     13107
+weighted avg       0.99      0.99      0.99     13107
+
+
+Rapport détaillé — seuil 0.02 :
+              precision    recall  f1-score   support
+
+       allow       1.00      0.99      1.00      7528
+        deny       0.99      0.98      0.98      2998
+        drop       0.97      1.00      0.99      2570
+  reset-both       0.15      0.36      0.22        11
+
+    accuracy                           0.99     13107
+   macro avg       0.78      0.83      0.80     13107
+weighted avg       0.99      0.99      0.99     13107
+
+
+Rapport détaillé — seuil optimal (0.0430) :
+              precision    recall  f1-score   support
+
+       allow       1.00      0.99      1.00      7528
+        deny       0.99      0.98      0.98      2998
+        drop       0.97      1.00      0.99      2570
+  reset-both       0.25      0.36      0.30        11
+
+    accuracy                           0.99     13107
+   macro avg       0.80      0.83      0.82     13107
+weighted avg       0.99      0.99      0.99     13107
+
+=======================================================
+COMPARAISON GÉNÉRALE — toutes les configurations
+=======================================================
+
+                           Seuil 0.50 (défaut)         Seuil 0.3         Seuil 0.2         Seuil 0.1        Seuil 0.05        Seuil 0.02Seuil optimal (0.0430)
+--------------------------------------------------------------------------------------------------------------------------------------------------------
+                  F1 macro              0.707             0.742             0.742             0.768             0.799             0.795             0.815
+           Précision macro              0.742             0.740             0.740             0.771             0.790             0.779             0.803
+              Rappel macro              0.836             0.743             0.743             0.766             0.811             0.833             0.834
+               F1 weighted              0.955             0.991             0.991             0.991             0.991             0.991             0.991
+                  Accuracy              0.931             0.992             0.991             0.991             0.991             0.990             0.991
+
+         allow — Précision              1.000             0.999             0.999             0.999             1.000             1.000             1.000
+            allow — Rappel              0.993             0.996             0.996             0.995             0.995             0.994             0.995
+                allow — F1              0.996             0.998             0.998             0.997             0.997             0.997             0.997
+
+          deny — Précision              0.986             0.989             0.989             0.989             0.989             0.989             0.989
+             deny — Rappel              0.716             0.976             0.976             0.976             0.976             0.976             0.976
+                 deny — F1              0.830             0.983             0.983             0.983             0.983             0.983             0.983
+
+          drop — Précision              0.972             0.972             0.972             0.972             0.972             0.972             0.972
+             drop — Rappel              1.000             1.000             1.000             1.000             1.000             1.000             1.000
+                 drop — F1              0.986             0.986             0.986             0.986             0.986             0.986             0.986
+
+    reset-both — Précision              0.009             0.000             0.000             0.125             0.200             0.154             0.250
+       reset-both — Rappel              0.636             0.000             0.000             0.091             0.273             0.364             0.364
+           reset-both — F1              0.017             0.000             0.000             0.105             0.231             0.216             0.296
+
+=======================================================
+SYNTHÈSE
+=======================================================
+Meilleur F1 macro global    : seuil optimal (0.0430)     → 0.815
+Meilleur rappel reset-both  : seuil 0.50 (défaut)        → 0.636
+Meilleur F1 reset-both      : seuil optimal (0.0430)     → 0.296
+
+Note : abaisser le seuil améliore le rappel de reset-both
+mais dégrade la précision globale (plus de faux positifs).
+Choisir le seuil selon la priorité métier :
+  → Sécurité maximale (ne rien manquer) : seuil bas
+  → Moins de fausses alertes            : seuil 0.50
+
+=======================================================
+TERMINÉ — Résultats sauvegardés dans : run-004/
+=======================================================

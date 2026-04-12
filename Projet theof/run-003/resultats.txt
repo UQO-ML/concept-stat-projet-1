@@ -1,0 +1,186 @@
+=======================================================
+  Classification Firewall — SVM Multiclasse
+  Dossier de run : run-003/
+=======================================================
+=======================================================
+ÉTAPE 1 : Chargement des données
+=======================================================
+Source : log2.csv
+Instances : 65532
+Features : 11
+
+Distribution des classes :
+Action
+allow         37640
+deny          14987
+drop          12851
+reset-both       54
+
+=======================================================
+ÉTAPE 2 : Sélection des features
+=======================================================
+11 features numériques sélectionnées
+Variable cible : 'Action' (4 classes)
+Données personnelles : exclues
+
+=======================================================
+ÉTAPE 3 : Préparation des données
+=======================================================
+Train : 52425 instances (80%)
+Test : 13107 instances (20%)
+Normalisation : StandardScaler appliquée
+
+=======================================================
+ÉTAPE 4 : Entraînement des 4 classifieurs SVM
+=======================================================
+
+ SVM Linear : 
+F1=68.7%  Précision=74.3%  Rappel=83.1%
+
+ SVM Polynomial : 
+F1=65.8%  Précision=69.4%  Rappel=75.7%
+
+ SVM RBF : 
+F1=70.5%  Précision=73.2%  Rappel=81.6%
+
+ SVM Sigmoid : 
+F1=63.0%  Précision=68.8%  Rappel=66.7%
+
+=======================================================
+ÉTAPE 5 : Tableau comparatif des performances
+=======================================================
+
+                F1 Score  Precision  Recall
+SVM Linear          68.7       74.3    83.1
+SVM Polynomial      65.8       69.4    75.7
+SVM RBF             70.5       73.2    81.6
+SVM Sigmoid         63.0       68.8    66.7
+
+  Meilleur modèle (F1) : SVM RBF — F1=70.5%  Précision=73.2%  Rappel=81.6%
+
+=======================================================
+ÉTAPE 6 : Rapport détaillé — SVM RBF
+=======================================================
+              precision    recall  f1-score   support
+
+       allow       1.00      0.97      0.98      7528
+        deny       0.97      0.75      0.85      2998
+        drop       0.95      1.00      0.97      2570
+  reset-both       0.01      0.55      0.02        11
+
+    accuracy                           0.92     13107
+   macro avg       0.73      0.82      0.70     13107
+weighted avg       0.98      0.92      0.95     13107
+
+
+=======================================================
+ÉTAPES 7-8 : Graphiques
+=======================================================
+Sauvegardé : run-003/comparaison_svm.png
+Sauvegardé : run-003/matrice_confusion.png
+
+=======================================================
+ÉTAPE 9 : Courbes ROC par classe
+=======================================================
+Sauvegardé : run-003/roc_allow.png
+Sauvegardé : run-003/roc_deny.png
+Sauvegardé : run-003/roc_drop.png
+Sauvegardé : run-003/roc_reset_both.png
+
+=======================================================
+ÉTAPE 10 — Phase A : Optimisation hyperparamètres — SVM RBF
+=======================================================
+Kernel optimisé : rbf
+Paramètres testés :
+    • C : [0.1, 1, 10, 100]
+    • gamma : ['scale', 'auto', 0.001, 0.01, 0.1]
+Nombre de combinaisons : 20
+Validation croisée     : 5 plis (cv=5)
+Métrique de sélection  : F1 macro
+Données d'entraînement : jeu complet (52425 instances)
+Gestion déséquilibre   : class_weight='balanced'
+
+Meilleurs paramètres trouvés :
+    C = 10
+    gamma = scale
+F1 moyen (validation croisée) = 70.7%
+
+Performance SVM optimisé (class_weight) sur le test set :
+    F1        = 70.7%
+    Précision = 74.2%
+    Rappel    = 83.6%
+
+Rapport détaillé — SVM RBF optimisé (class_weight) :
+              precision    recall  f1-score   support
+
+       allow       1.00      0.99      1.00      7528
+        deny       0.99      0.72      0.83      2998
+        drop       0.97      1.00      0.99      2570
+  reset-both       0.01      0.64      0.02        11
+
+    accuracy                           0.93     13107
+   macro avg       0.74      0.84      0.71     13107
+weighted avg       0.99      0.93      0.96     13107
+
+=======================================================
+ÉTAPE 10 — Phase B : SMOTEENN + SVM
+=======================================================
+Étape 1 — SMOTE : génération d'instances synthétiques reset-both
+          par interpolation entre voisins proches.
+Étape 2 — ENN   : suppression des instances ambiguës aux
+          frontières de toutes les classes.
+Classifieur : SVM RBF avec les paramètres optimisés
+             (C=10, gamma=scale)
+             sans class_weight (rééquilibrage assuré par SMOTEENN)
+
+Distribution avant SMOTEENN :
+    allow        : 30112 instances
+    deny         : 11989 instances
+    drop         : 10281 instances
+    reset-both   : 43 instances
+
+Distribution après SMOTEENN :
+    allow        : 29982 instances
+    deny         : 29265 instances
+    drop         : 29999 instances
+    reset-both   : 29273 instances
+    Total          : 118519 instances (+66094)
+
+Entraînement SVM RBF sur données SMOTEENN ...
+
+Performance SMOTEENN + SVM sur le test set :
+    F1        = 71.0%
+    Précision = 74.2%
+    Rappel    = 84.0%
+
+Rapport détaillé — SMOTEENN + SVM RBF :
+              precision    recall  f1-score   support
+
+       allow       1.00      0.99      1.00      7528
+        deny       0.99      0.73      0.84      2998
+        drop       0.97      1.00      0.99      2570
+  reset-both       0.01      0.64      0.02        11
+
+    accuracy                           0.93     13107
+   macro avg       0.74      0.84      0.71     13107
+weighted avg       0.99      0.93      0.96     13107
+
+=======================================================
+COMPARAISON FINALE
+=======================================================
+Méthode                                  F1   Précision    Rappel
+-------------------------------------------------------
+SVM RBF + class_weight                70.7%       74.2%     83.6%
+SMOTEENN + SVM RBF                    71.0%       74.2%     84.0%
+=======================================================
+→ SMOTEENN améliore le F1 Score de +0.3%
+
+Focus classe 'reset-both' :
+Méthode                               Précision    Rappel      F1
+-------------------------------------------------------
+SVM RBF + class_weight                    0.01      0.64    0.02
+SMOTEENN + SVM RBF                        0.01      0.64    0.02
+
+=======================================================
+TERMINÉ — Résultats sauvegardés dans : run-003/
+=======================================================
