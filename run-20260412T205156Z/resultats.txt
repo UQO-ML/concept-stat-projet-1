@@ -1,6 +1,7 @@
 =======================================================
   Classification Firewall — SVM Multiclasse
-  Dossier de run : run-001/
+  Dossier de run : run-20260412T205156Z/
+  Horodatage début (UTC) : 2026-04-12T20:51:56.126226Z
 =======================================================
 =======================================================
 ÉTAPE 1 : Chargement des données
@@ -76,16 +77,16 @@ weighted avg       0.98      0.92      0.95     13107
 =======================================================
 ÉTAPES 7-8 : Graphiques
 =======================================================
-Sauvegardé : run-001/comparaison_svm.png
-Sauvegardé : run-001/matrice_confusion.png
+Sauvegardé : run-20260412T205156Z/comparaison_svm.png
+Sauvegardé : run-20260412T205156Z/matrice_confusion.png
 
 =======================================================
 ÉTAPE 9 : Courbes ROC par classe
 =======================================================
-Sauvegardé : run-001/roc_allow.png
-Sauvegardé : run-001/roc_deny.png
-Sauvegardé : run-001/roc_drop.png
-Sauvegardé : run-001/roc_reset_both.png
+Sauvegardé : run-20260412T205156Z/roc_allow.png
+Sauvegardé : run-20260412T205156Z/roc_deny.png
+Sauvegardé : run-20260412T205156Z/roc_drop.png
+Sauvegardé : run-20260412T205156Z/roc_reset_both.png
 
 =======================================================
 ÉTAPE 10 : Optimisation hyperparamètres — SVM RBF
@@ -118,6 +119,10 @@ Rapport détaillé après optimisation :
 weighted avg       0.99      0.93      0.96     13107
 
 
+Sur le jeu test (macro %) : P=74.2 R=83.6 F1=70.7
+
+Manifest JSON : run-20260412T205156Z/run_manifest.json
+
 =======================================================
-TERMINÉ — Résultats sauvegardés dans : run-001/
+TERMINÉ — Résultats sauvegardés dans : run-20260412T205156Z/
 =======================================================

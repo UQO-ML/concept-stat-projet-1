@@ -1,0 +1,67 @@
+{
+  "run_folder": "run-20260412T210343Z",
+  "started_at_utc": "2026-04-12T21:03:43.383856Z",
+  "data_source": "log2.csv",
+  "random_state": 69,
+  "class_names": [
+    "allow",
+    "deny",
+    "drop",
+    "reset-both"
+  ],
+  "class_counts_full": {
+    "allow": 37640,
+    "deny": 14987,
+    "drop": 12851,
+    "reset-both": 54
+  },
+  "class_counts_train": {
+    "allow": 30112,
+    "deny": 11989,
+    "drop": 10281,
+    "reset-both": 43
+  },
+  "class_counts_test": {
+    "allow": 7528,
+    "deny": 2998,
+    "drop": 2570,
+    "reset-both": 11
+  },
+  "test_support_ratio": 684.3636363636364,
+  "kernel_results_macro_pct": {
+    "SVM Linear": {
+      "F1 Score": 68.7,
+      "Precision": 74.3,
+      "Recall": 83.1
+    },
+    "SVM Polynomial": {
+      "F1 Score": 65.8,
+      "Precision": 69.4,
+      "Recall": 75.7
+    },
+    "SVM RBF": {
+      "F1 Score": 70.5,
+      "Precision": 73.2,
+      "Recall": 81.6
+    },
+    "SVM Sigmoid": {
+      "F1 Score": 63.0,
+      "Precision": 68.8,
+      "Recall": 66.7
+    }
+  },
+  "best_kernel_display_name": "SVM RBF",
+  "f1_per_class_best_kernel_pct": {
+    "allow": 98.4,
+    "deny": 84.77,
+    "drop": 97.2,
+    "reset-both": 1.52
+  },
+  "f1_per_class_after_gridsearch_pct": {
+    "allow": 99.61,
+    "deny": 83.0,
+    "drop": 98.58,
+    "reset-both": 1.71
+  },
+  "finished_at_utc": "2026-04-12T21:14:42.913480Z"
+}

@@ -12,7 +12,8 @@ RUN pip install --no-cache-dir \
     wheel \
     jupyterlab \
     importlib_resources \
-    tensorflow-datasets 
+    tensorflow-datasets \
+    ipynbname
 
 RUN pip install --no-cache-dir "protobuf>=3.20,<5"
 
