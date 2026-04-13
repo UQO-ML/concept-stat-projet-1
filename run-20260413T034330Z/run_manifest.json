@@ -1,7 +1,7 @@
 {
-  "run_folder": "run-20260413T020219Z",
-  "started_at_utc": "2026-04-13T02:02:19.443482Z",
-  "data_source": "/home/kilo/work/Cours - UQO/Concept Statistique/concept-stat-projet-1/log2.csv",
+  "run_folder": "run-20260413T034330Z",
+  "started_at_utc": "2026-04-13T03:43:30.715645Z",
+  "data_source": "log2.csv",
   "random_state": 69,
   "class_names": [
     "allow",
@@ -73,7 +73,7 @@
       0.05,
       0.02
     ],
-    "selected_reset_both_threshold": 0.007551164892841991,
+    "selected_reset_both_threshold": 0.007551164892842209,
     "grid_best_f1_cv_pct": 70.66,
     "grid_best_params": {
       "C": 10,
@@ -441,5 +441,5 @@
     "drop": 98.62,
     "reset-both": 3.81
   },
-  "finished_at_utc": "2026-04-13T02:52:54.295061Z"
+  "finished_at_utc": "2026-04-13T03:55:32.387813Z"
 }

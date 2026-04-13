@@ -1,12 +1,12 @@
 =======================================================
   Classification Firewall — SVM Multiclasse
-  Dossier de run : run-20260413T020219Z/
-  Horodatage début (UTC) : 2026-04-13T02:02:19.443482Z
+  Dossier de run : run-20260413T034330Z/
+  Horodatage début (UTC) : 2026-04-13T03:43:30.715645Z
 =======================================================
 =======================================================
 ÉTAPE 1 : Chargement des données
 =======================================================
-Source : /home/kilo/work/Cours - UQO/Concept Statistique/concept-stat-projet-1/log2.csv
+Source : log2.csv
 Instances : 65532
 Features : 11
 
@@ -77,16 +77,16 @@ weighted avg       0.98      0.92      0.95     13107
 =======================================================
 ÉTAPES 7-8 : Graphiques
 =======================================================
-Sauvegardé : run-20260413T020219Z/comparaison_svm.png
-Sauvegardé : run-20260413T020219Z/matrice_confusion.png
+Sauvegardé : run-20260413T034330Z/comparaison_svm.png
+Sauvegardé : run-20260413T034330Z/matrice_confusion.png
 
 =======================================================
 ÉTAPE 9 : Courbes ROC par classe
 =======================================================
-Sauvegardé : run-20260413T020219Z/roc_allow.png
-Sauvegardé : run-20260413T020219Z/roc_deny.png
-Sauvegardé : run-20260413T020219Z/roc_drop.png
-Sauvegardé : run-20260413T020219Z/roc_reset_both.png
+Sauvegardé : run-20260413T034330Z/roc_allow.png
+Sauvegardé : run-20260413T034330Z/roc_deny.png
+Sauvegardé : run-20260413T034330Z/roc_drop.png
+Sauvegardé : run-20260413T034330Z/roc_reset_both.png
 
 =======================================================
 ÉTAPE 10 : Optimisation hyperparamètres — SVM RBF
@@ -145,8 +145,8 @@ Comparaison test (macro avg):
   seuil 0.0076 -> P=74.5 R=85.7 F1=73.9
   reset-both (F1) défaut=1.71 / seuil=3.81
 
-Manifest JSON : run-20260413T020219Z/run_manifest.json
+Manifest JSON : run-20260413T034330Z/run_manifest.json
 
 =======================================================
-TERMINÉ — Résultats sauvegardés dans : run-20260413T020219Z/
+TERMINÉ — Résultats sauvegardés dans : run-20260413T034330Z/
 =======================================================

@@ -1,7 +1,7 @@
 =======================================================
   Classification Firewall — SVM Multiclasse
-  Dossier de run : run-20260412T205156Z/
-  Horodatage début (UTC) : 2026-04-12T20:51:56.126226Z
+  Dossier de run : run-20260413T033124Z/
+  Horodatage début (UTC) : 2026-04-13T03:31:24.766768Z
 =======================================================
 =======================================================
 ÉTAPE 1 : Chargement des données
@@ -77,16 +77,16 @@ weighted avg       0.98      0.92      0.95     13107
 =======================================================
 ÉTAPES 7-8 : Graphiques
 =======================================================
-Sauvegardé : run-20260412T205156Z/comparaison_svm.png
-Sauvegardé : run-20260412T205156Z/matrice_confusion.png
+Sauvegardé : run-20260413T033124Z/comparaison_svm.png
+Sauvegardé : run-20260413T033124Z/matrice_confusion.png
 
 =======================================================
 ÉTAPE 9 : Courbes ROC par classe
 =======================================================
-Sauvegardé : run-20260412T205156Z/roc_allow.png
-Sauvegardé : run-20260412T205156Z/roc_deny.png
-Sauvegardé : run-20260412T205156Z/roc_drop.png
-Sauvegardé : run-20260412T205156Z/roc_reset_both.png
+Sauvegardé : run-20260413T033124Z/roc_allow.png
+Sauvegardé : run-20260413T033124Z/roc_deny.png
+Sauvegardé : run-20260413T033124Z/roc_drop.png
+Sauvegardé : run-20260413T033124Z/roc_reset_both.png
 
 =======================================================
 ÉTAPE 10 : Optimisation hyperparamètres — SVM RBF
@@ -106,7 +106,7 @@ Meilleurs paramètres trouvés :
     gamma = scale
 F1 moyen (validation croisée) = 70.7%
 
-Rapport détaillé après optimisation :
+Rapport détaillé après optimisation (seuil par défaut 0.50) :
               precision    recall  f1-score   support
 
        allow       1.00      0.99      1.00      7528
@@ -121,8 +121,32 @@ weighted avg       0.99      0.93      0.96     13107
 
 Sur le jeu test (macro %) : P=74.2 R=83.6 F1=70.7
 
-Manifest JSON : run-20260412T205156Z/run_manifest.json
+=======================================================
+ÉTAPE 10B : Calibration du seuil reset-both (sur validation)
+=======================================================
+Calibration interne: train_cal=41940 / val_cal=10485 (stratifié)
+Seuil sélectionné (reset-both_f1) : 0.0076 (score validation=0.0379)
+
+Rapport détaillé sur test — seuil sélectionné :
+              precision    recall  f1-score   support
+
+       allow       1.00      0.99      1.00      7528
+        deny       0.99      0.89      0.94      2998
+        drop       0.97      1.00      0.99      2570
+  reset-both       0.02      0.55      0.04        11
+
+    accuracy                           0.97     13107
+   macro avg       0.75      0.86      0.74     13107
+weighted avg       0.99      0.97      0.98     13107
+
+
+Comparaison test (macro avg):
+  défaut 0.50    -> P=74.2 R=83.6 F1=70.7
+  seuil 0.0076 -> P=74.5 R=85.7 F1=73.9
+  reset-both (F1) défaut=1.71 / seuil=3.81
+
+Manifest JSON : run-20260413T033124Z/run_manifest.json
 
 =======================================================
-TERMINÉ — Résultats sauvegardés dans : run-20260412T205156Z/
+TERMINÉ — Résultats sauvegardés dans : run-20260413T033124Z/
 =======================================================
