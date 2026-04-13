@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
+import seaborn as sns
 from typing import Any
 from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
 
@@ -99,4 +101,127 @@ def learning_curve(history_fit) -> Any:
     plt.legend()
     plt.title('Courbe de Précision')
 
-    return plt.show()  
+    return plt.show()
+
+
+# ---------------------------------------------------------------------------
+# Firewall log EDA (projet SVM multiclasse)
+# ---------------------------------------------------------------------------
+
+def set_firewall_plot_style() -> None:
+    """Style cohérent pour les figures du projet firewall."""
+    sns.set_theme(style="whitegrid", context="notebook", font_scale=1.0)
+
+
+def plot_firewall_action_distribution(df: pd.DataFrame, action_col: str = "Action") -> Any:
+    """
+    Distribution des classes avec annotation du pourcentage.
+    """
+    set_firewall_plot_style()
+    counts = df[action_col].value_counts().sort_values(ascending=False)
+    total = counts.sum()
+    _, ax = plt.subplots(figsize=(8, 4.5))
+    colors = sns.color_palette("Set2", n_colors=len(counts))
+    bars = ax.bar(counts.index, counts.values, color=colors, edgecolor="black", linewidth=0.5)
+    for bar, v in zip(bars, counts.values):
+        pct = 100.0 * v / max(total, 1)
+        ax.text(
+            bar.get_x() + bar.get_width() / 2,
+            bar.get_height(),
+            f"{v}\n({pct:.2f}%)",
+            ha="center",
+            va="bottom",
+            fontsize=9,
+        )
+    ax.set_title("Distribution des classes (Action)")
+    ax.set_xlabel("Classe")
+    ax.set_ylabel("Nombre d'instances")
+    plt.tight_layout()
+    return plt.show()
+
+
+def plot_firewall_feature_boxplots(
+    df: pd.DataFrame,
+    features: list[str],
+    action_col: str = "Action",
+    ncols: int = 3,
+) -> Any:
+    """
+    Boxplots par classe pour chaque feature numérique.
+    Les features sont affichées en échelle log sur Y pour améliorer la lisibilité.
+    """
+    set_firewall_plot_style()
+    n = len(features)
+    nrows = int(np.ceil(n / ncols))
+    fig, axes = plt.subplots(nrows, ncols, figsize=(5 * ncols, 3.6 * nrows))
+    axes = np.atleast_1d(axes).ravel()
+    for i, feat in enumerate(features):
+        ax = axes[i]
+        sns.boxplot(data=df, x=action_col, y=feat, ax=ax, showfliers=False, palette="Set3")
+        ax.set_title(feat)
+        ax.set_yscale("log")
+        ax.tick_params(axis="x", rotation=20)
+    for j in range(n, len(axes)):
+        axes[j].set_visible(False)
+    fig.suptitle("Distribution des variables numériques par classe (boxplot, échelle log)", y=1.02)
+    plt.tight_layout()
+    return plt.show()
+
+
+def plot_firewall_correlation_heatmap(df: pd.DataFrame, features: list[str]) -> Any:
+    """
+    Heatmap des corrélations entre variables numériques.
+    """
+    set_firewall_plot_style()
+    corr = df[features].corr(method="spearman")
+    _, ax = plt.subplots(figsize=(10.5, 8))
+    mask = np.triu(np.ones_like(corr, dtype=bool))
+    sns.heatmap(
+        corr,
+        mask=mask,
+        cmap="RdBu_r",
+        vmin=-1,
+        vmax=1,
+        center=0,
+        annot=False,
+        square=True,
+        linewidths=0.4,
+        cbar_kws={"shrink": 0.75},
+        ax=ax,
+    )
+    ax.set_title("Corrélations (Spearman) entre features")
+    plt.tight_layout()
+    return plt.show()
+
+
+def plot_firewall_reset_both_focus(
+    df: pd.DataFrame,
+    features: list[str],
+    action_col: str = "Action",
+    max_features: int = 4,
+) -> Any:
+    """
+    Compare `reset-both` vs `autres classes` sur quelques variables.
+    """
+    set_firewall_plot_style()
+    feats = features[:max_features]
+    tmp = df.copy()
+    tmp["Action_group"] = np.where(tmp[action_col].eq("reset-both"), "reset-both", "others")
+    n = len(feats)
+    fig, axes = plt.subplots(1, n, figsize=(4.5 * n, 4.2))
+    axes = np.atleast_1d(axes)
+    for ax, feat in zip(axes, feats):
+        sns.violinplot(
+            data=tmp,
+            x="Action_group",
+            y=feat,
+            inner="quartile",
+            cut=0,
+            ax=ax,
+            palette=["#dd8452", "#4c72b0"],
+        )
+        ax.set_yscale("log")
+        ax.set_title(feat)
+    fig.suptitle("Focus classe rare: reset-both vs autres (violin, échelle log)", y=1.03)
+    plt.tight_layout()
+    return plt.show()

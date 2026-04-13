@@ -222,3 +222,64 @@ def print_crossrun_class_imbalance_bilan(
             "exécutions complètes de `firewall_svm.py` (deux dossiers run-* avec manifest) "
             "dans le périmètre de source sélectionné."
         )
+
+
+def print_threshold_tuning_bilan(manifest: Mapping[str, object]) -> None:
+    """
+    Affiche le résumé de calibration de seuil `reset-both` à partir d'un run_manifest.
+    """
+    t = manifest.get("threshold_tuning") if isinstance(manifest, Mapping) else None
+    if not isinstance(t, Mapping):
+        print("\n[threshold] Aucun bloc `threshold_tuning` dans ce manifest.")
+        return
+
+    selected = t.get("selected_reset_both_threshold")
+    target = t.get("selection_target")
+    test_results = t.get("test_threshold_results") or {}
+    if not isinstance(test_results, Mapping):
+        test_results = {}
+
+    print("\n" + "=" * 70)
+    print("  Calibration du seuil reset-both — bilan")
+    print("=" * 70)
+    print(f"  Cible de sélection          : {target!r}")
+    if selected is not None:
+        print(f"  Seuil retenu                : {float(selected):.4f}")
+
+    default_rep = test_results.get("default_0.5000", {})
+    selected_rep = test_results.get(f"selected_{float(selected):.4f}", {}) if selected is not None else {}
+    if not isinstance(default_rep, Mapping) or not isinstance(selected_rep, Mapping):
+        print("  Résultats test incomplets dans le manifest.")
+        return
+
+    def _val(rep: Mapping[str, object], block: str, metric: str) -> float:
+        sub = rep.get(block, {})
+        if isinstance(sub, Mapping):
+            return float(sub.get(metric, 0.0))
+        return 0.0
+
+    rows = [
+        ("Macro F1", _val(default_rep, "macro avg", "f1-score"), _val(selected_rep, "macro avg", "f1-score")),
+        ("Macro Recall", _val(default_rep, "macro avg", "recall"), _val(selected_rep, "macro avg", "recall")),
+        ("Macro Precision", _val(default_rep, "macro avg", "precision"), _val(selected_rep, "macro avg", "precision")),
+        (
+            "reset-both F1",
+            _val(default_rep, "reset-both", "f1-score"),
+            _val(selected_rep, "reset-both", "f1-score"),
+        ),
+        (
+            "reset-both Recall",
+            _val(default_rep, "reset-both", "recall"),
+            _val(selected_rep, "reset-both", "recall"),
+        ),
+        (
+            "reset-both Precision",
+            _val(default_rep, "reset-both", "precision"),
+            _val(selected_rep, "reset-both", "precision"),
+        ),
+    ]
+
+    print(f"\n  {'Métrique':24} {'Défaut(0.50)':>14} {'Seuil sélectionné':>18} {'Δ':>10}")
+    print("  " + "-" * 68)
+    for label, a, b in rows:
+        print(f"  {label:24} {a*100:14.2f} {b*100:18.2f} {(b-a)*100:10.2f}")

@@ -185,5 +185,11 @@ def print_latest_run_legend(
     print(f"  Meilleur noyau (F1 macro) : {m.get('best_kernel_display_name', '?')}")
     rb = (m.get("f1_per_class_best_kernel_pct") or {}).get("reset-both", "?")
     print(f"  F1 classe « reset-both » (meilleur noyau, avant grille) : {rb} %")
+    th = (m.get("threshold_tuning") or {}).get("selected_reset_both_threshold")
+    if th is not None:
+        print(f"  Seuil reset-both retenu (après calibration) : {float(th):.4f}")
+    rb_after = (m.get("f1_per_class_after_threshold_tuning_pct") or {}).get("reset-both")
+    if rb_after is not None:
+        print(f"  F1 classe « reset-both » (après calibration seuil) : {rb_after} %")
     print(f"  Fichier trace : {p / 'resultats.txt'}")
     print(f"  Manifest JSON : {p / MANIFEST_FILENAME}")
