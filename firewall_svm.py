@@ -22,10 +22,12 @@ if _CODE_DIR not in sys.path:
 
 import numpy as np
 import pandas as pd
+from sklearn.base import clone
 from sklearn.datasets import make_classification
 from sklearn.metrics import (
     classification_report,
     f1_score,
+    precision_recall_curve,
     precision_score,
     recall_score,
 )
@@ -69,6 +71,8 @@ KERNEL_DISPLAY_NAMES = {
 
 # Table III — F. Ertam & M. Kaya, valeurs numériques exactes de l'article (macro %)
 RUN_MANIFEST_JSON = "run_manifest.json"
+THRESHOLD_TUNING_CANDIDATES = (0.5, 0.3, 0.2, 0.1, 0.05, 0.02)
+THRESHOLD_SELECTION_TARGET = "reset-both_f1"
 
 
 def _utc_now_iso() -> str:
@@ -302,6 +306,35 @@ def train_eval_kernel(
     return pipeline, y_pred, metrics
 
 
+def predict_with_reset_threshold(y_proba: np.ndarray, threshold: float, reset_class_index: int = 3) -> np.ndarray:
+    """
+    Prédit `reset-both` si sa probabilité dépasse un seuil dédié.
+    Sinon, garde l'argmax parmi les autres classes.
+    """
+    pred_non_reset = np.argmax(y_proba[:, :reset_class_index], axis=1)
+    return np.where(y_proba[:, reset_class_index] >= threshold, reset_class_index, pred_non_reset)
+
+
+def _classification_report_dict(y_true, y_pred) -> dict:
+    return classification_report(
+        y_true,
+        y_pred,
+        target_names=CLASS_NAMES,
+        output_dict=True,
+        zero_division=0,
+    )
+
+
+def _score_threshold_results(report_dict: dict, target: str) -> float:
+    if target == "reset-both_f1":
+        return float(report_dict.get("reset-both", {}).get("f1-score", 0.0))
+    if target == "reset-both_recall":
+        return float(report_dict.get("reset-both", {}).get("recall", 0.0))
+    if target == "macro_f1":
+        return float(report_dict.get("macro avg", {}).get("f1-score", 0.0))
+    raise ValueError(f"Cible de sélection de seuil non supportée: {target}")
+
+
 # ============================================================
 # ÉTAPE 4 — Entraînement des 4 SVM
 # ============================================================
@@ -428,8 +461,14 @@ def plot_roc_curves(log, run_folder, models, x_test, y_test):
 # ============================================================
 def optimize_best_model(log, best_name, x_train, y_train, x_test, y_test):
     """
-    Optimise les hyperparamètres du meilleur modèle via GridSearchCV avec validation croisée à 5 plis.
-    Retourne le meilleur estimateur entraîné.
+    Optimise les hyperparamètres du meilleur modèle via GridSearchCV (cv=5),
+    puis calibre un seuil dédié à la classe `reset-both` sur un split de validation.
+
+    Retourne un dictionnaire contenant:
+      - best_estimator (modèle ajusté sur x_train complet),
+      - paramètres GridSearch,
+      - résultats de calibration de seuil (validation),
+      - résultats comparatifs sur test (seuil 0.50 vs seuil calibré).
     """
     kernel = best_name.split(" ", 1)[1].lower()
     if kernel == "polynomial":
@@ -496,22 +535,125 @@ def optimize_best_model(log, best_name, x_train, y_train, x_test, y_test):
         log(f"    {param} = {value}")
     log(f"F1 moyen (validation croisée) = {best_f1_cv:.1f}%")
 
-    y_pred_opt = grid.best_estimator_.predict(x_test)
-    p_opt = precision_score(y_test, y_pred_opt, average="macro", zero_division=0) * 100
-    r_opt = recall_score(y_test, y_pred_opt, average="macro", zero_division=0) * 100
-    f1_opt = f1_score(y_test, y_pred_opt, average="macro", zero_division=0) * 100
+    best_estimator = grid.best_estimator_
 
-    log("\nRapport détaillé après optimisation :")
-    report_opt = classification_report(
+    # --- Évaluation de référence sur test (seuil multiclasses standard) ---
+    y_pred_opt_default = best_estimator.predict(x_test)
+    p_opt = precision_score(y_test, y_pred_opt_default, average="macro", zero_division=0) * 100
+    r_opt = recall_score(y_test, y_pred_opt_default, average="macro", zero_division=0) * 100
+    f1_opt = f1_score(y_test, y_pred_opt_default, average="macro", zero_division=0) * 100
+
+    log("\nRapport détaillé après optimisation (seuil par défaut 0.50) :")
+    report_opt_text = classification_report(
         y_test,
-        y_pred_opt,
+        y_pred_opt_default,
         target_names=CLASS_NAMES,
         zero_division=0,
     )
-    log(report_opt)
+    log(report_opt_text)
     log(f"\nSur le jeu test (macro %) : P={p_opt:.1f} R={r_opt:.1f} F1={f1_opt:.1f}")
 
-    return grid.best_estimator_
+    # --- Calibration du seuil reset-both sur split validation (pas sur test) ---
+    log("\n" + "=" * 55)
+    log("ÉTAPE 10B : Calibration du seuil reset-both (sur validation)")
+    log("=" * 55)
+
+    x_train_cal, x_val_cal, y_train_cal, y_val_cal = train_test_split(
+        x_train,
+        y_train,
+        test_size=0.2,
+        random_state=RANDOM_STATE,
+        stratify=y_train,
+    )
+    log(
+        "Calibration interne: "
+        f"train_cal={len(x_train_cal)} / val_cal={len(x_val_cal)} (stratifié)"
+    )
+
+    calib_model = clone(best_estimator)
+    calib_model.fit(x_train_cal, y_train_cal)
+    val_proba = calib_model.predict_proba(x_val_cal)
+    val_reset_true = (y_val_cal == 3).astype(int)
+
+    val_results: dict[str, dict] = {}
+    for thr in THRESHOLD_TUNING_CANDIDATES:
+        y_val_pred_thr = predict_with_reset_threshold(val_proba, float(thr))
+        rep = _classification_report_dict(y_val_cal, y_val_pred_thr)
+        val_results[f"{float(thr):.4f}"] = rep
+
+    # Seuil auto issu de la courbe PR, calculé sur validation.
+    p_curve, r_curve, th_curve = precision_recall_curve(val_reset_true, val_proba[:, 3])
+    f1_curve = 2 * p_curve * r_curve / (p_curve + r_curve + 1e-12)
+    if len(th_curve) > 0:
+        # Le dernier couple precision/recall n'a pas de seuil associé.
+        max_idx = int(np.argmax(f1_curve[:-1])) if len(f1_curve) > 1 else 0
+        auto_thr = float(th_curve[max_idx])
+        y_val_pred_auto = predict_with_reset_threshold(val_proba, auto_thr)
+        val_results[f"auto({auto_thr:.4f})"] = _classification_report_dict(y_val_cal, y_val_pred_auto)
+    else:
+        auto_thr = 0.5
+
+    best_thr_label, best_thr_report = max(
+        val_results.items(),
+        key=lambda kv: _score_threshold_results(kv[1], THRESHOLD_SELECTION_TARGET),
+    )
+    if best_thr_label.startswith("auto("):
+        selected_threshold = auto_thr
+    else:
+        selected_threshold = float(best_thr_label)
+
+    best_thr_score = _score_threshold_results(best_thr_report, THRESHOLD_SELECTION_TARGET)
+    log(
+        f"Seuil sélectionné ({THRESHOLD_SELECTION_TARGET}) : {selected_threshold:.4f} "
+        f"(score validation={best_thr_score:.4f})"
+    )
+
+    # --- Évaluation finale sur test (seuil sélectionné) ---
+    test_proba = best_estimator.predict_proba(x_test)
+    y_pred_opt_selected = predict_with_reset_threshold(test_proba, selected_threshold)
+
+    default_report_dict = _classification_report_dict(y_test, y_pred_opt_default)
+    selected_report_dict = _classification_report_dict(y_test, y_pred_opt_selected)
+
+    log("\nRapport détaillé sur test — seuil sélectionné :")
+    log(
+        classification_report(
+            y_test,
+            y_pred_opt_selected,
+            target_names=CLASS_NAMES,
+            zero_division=0,
+        )
+    )
+
+    log("\nComparaison test (macro avg):")
+    log(
+        f"  défaut 0.50    -> P={default_report_dict['macro avg']['precision']*100:.1f} "
+        f"R={default_report_dict['macro avg']['recall']*100:.1f} "
+        f"F1={default_report_dict['macro avg']['f1-score']*100:.1f}"
+    )
+    log(
+        f"  seuil {selected_threshold:.4f} -> P={selected_report_dict['macro avg']['precision']*100:.1f} "
+        f"R={selected_report_dict['macro avg']['recall']*100:.1f} "
+        f"F1={selected_report_dict['macro avg']['f1-score']*100:.1f}"
+    )
+    log(
+        f"  reset-both (F1) défaut={default_report_dict.get('reset-both',{}).get('f1-score',0)*100:.2f} "
+        f"/ seuil={selected_report_dict.get('reset-both',{}).get('f1-score',0)*100:.2f}"
+    )
+
+    return {
+        "best_estimator": best_estimator,
+        "grid_best_params": best_p,
+        "grid_best_f1_cv_pct": round(float(best_f1_cv), 2),
+        "threshold_selection_target": THRESHOLD_SELECTION_TARGET,
+        "threshold_candidates": [float(t) for t in THRESHOLD_TUNING_CANDIDATES],
+        "selected_reset_both_threshold": float(selected_threshold),
+        "validation_threshold_results": val_results,
+        "test_threshold_results": {
+            "default_0.5000": default_report_dict,
+            f"selected_{selected_threshold:.4f}": selected_report_dict,
+        },
+    }
 
 
 # ============================================================
@@ -584,11 +726,28 @@ def main(data_source=None):
     plot_confusion_matrix(log, run_folder, best_name, y_test, y_preds)
     plot_roc_curves(log, run_folder, models, x_test, y_test)
 
-    opt_est = optimize_best_model(log, best_name, x_train, y_train, x_test, y_test)
+    opt_payload = optimize_best_model(log, best_name, x_train, y_train, x_test, y_test)
+    opt_est = opt_payload["best_estimator"]
     y_pred_opt = opt_est.predict(x_test)
     f1_pc_opt = f1_score(y_test, y_pred_opt, average=None, zero_division=0)
     manifest["f1_per_class_after_gridsearch_pct"] = {
         CLASS_NAMES[i]: round(float(f1_pc_opt[i]) * 100, 2) for i in range(len(CLASS_NAMES))
+    }
+    manifest["threshold_tuning"] = {
+        "selection_target": opt_payload["threshold_selection_target"],
+        "candidates": opt_payload["threshold_candidates"],
+        "selected_reset_both_threshold": opt_payload["selected_reset_both_threshold"],
+        "grid_best_f1_cv_pct": opt_payload["grid_best_f1_cv_pct"],
+        "grid_best_params": opt_payload["grid_best_params"],
+        "validation_threshold_results": opt_payload["validation_threshold_results"],
+        "test_threshold_results": opt_payload["test_threshold_results"],
+    }
+
+    selected_key = f"selected_{opt_payload['selected_reset_both_threshold']:.4f}"
+    selected_report = opt_payload["test_threshold_results"][selected_key]
+    manifest["f1_per_class_after_threshold_tuning_pct"] = {
+        cls: round(float(selected_report.get(cls, {}).get("f1-score", 0.0)) * 100, 2)
+        for cls in CLASS_NAMES
     }
 
     manifest["finished_at_utc"] = _utc_now_iso()
