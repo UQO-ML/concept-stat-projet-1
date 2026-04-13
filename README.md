@@ -1,180 +1,144 @@
-## Projet concept-stat-projet-1
+# concept-stat-projet-1
 
-Ce README est centre sur `Devoir partie 2` avec 2 parcours:
+Projet de cours en statistique / apprentissage automatique centré sur la reproduction de l'article:
+**"Classification of Firewall Log Files with Multiclass Support Vector Machine"** (Ertam & Kaya, 2018).
 
-- GPU avec Docker + NVIDIA (recommande sur Linux NVIDIA)
-- CPU avec environnement Python `venv` (Linux, Windows, macOS)
+Le depot contient:
+- un pipeline Python reproductible (`firewall_svm.py`);
+- un notebook principal d'analyse (`Projet.ipynb`);
+- des utilitaires de visualisation, d'interpretation et de suivi des runs (`code/`);
+- des notebooks de devoirs (`Devoir partie 1`, `Devoir partie 2`);
+- une option d'execution Docker GPU.
 
-## Structure du depot
+## Vue d'ensemble du projet
+
+L'objectif est de comparer 4 noyaux SVM en classification multiclasse sur les actions pare-feu:
+- `linear`
+- `poly`
+- `rbf`
+- `sigmoid`
+
+Le pipeline produit:
+- Precision, Recall, F1 (moyenne macro, en %);
+- rapport de classification par classe;
+- matrice de confusion;
+- courbes ROC;
+- comparaison experimentale vs valeurs de reference de la Table III de l'article.
+
+## Structure utile
 
 ```text
 concept-stat-projet-1/
+├── firewall_svm.py                 # pipeline principal CLI (runs horodates)
+├── Projet.ipynb                    # notebook principal (reproduction + analyse)
+├── log2.csv                        # dataset firewall (source locale)
+├── code/
+│   ├── firewall_visualization.py   # matrices, ROC, graphiques comparatifs
+│   ├── metric_interpretations.py   # interpretation metriques + comparaison article
+│   ├── hyperparam_advisor.py       # aide a l'analyse hyperparametres SVM
+│   └── run_timestamps.py           # suivi fraicheur / manifests run-*
+├── run-YYYY.../                    # artefacts generes par `firewall_svm.py`
 ├── Devoir partie 1/
 ├── Devoir partie 2/
-│   ├── DEVOIR Partie 2.ipynb
-│   ├── DEVOIR Partie 2-gpu.ipynb
-│   └── code/
-│       └── visualization.py
-├── Devoirs ID/
-│   └── DEVOIR Partie 2.ipynb
-├── Projet ID/
 ├── Dockerfile
 ├── docker-compose.yml
-├── requirements.txt
 ├── requirements-base.txt
-├── requirements-tf-cpu.txt
-├── requirements-tf-gpu.txt
-└── scripts/
+└── requirements-tf-gpu.txt
 ```
 
-## Prerequis
+## Installation (local CPU)
 
-### Commun
-
+Prerequis:
 - Python 3.10+ (3.11 recommande)
 - `pip` a jour
-- Jupyter Notebook ou JupyterLab
-
-### Pour le mode GPU Docker (Linux NVIDIA)
-
-- Docker Engine + Docker Compose
-- Pilote NVIDIA fonctionnel (`nvidia-smi`)
-- NVIDIA Container Toolkit (`nvidia-container-toolkit` / runtime `nvidia`)
-
-Le service `jupyter-gpu` utilise deja:
-
-- `gpus` avec `driver: nvidia`
-- `NVIDIA_VISIBLE_DEVICES=all`
-
-## Guide principal: Devoir partie 2
-
-### Option A - GPU via Docker (NVIDIA)
-
-Le conteneur s'appuie sur l'image TensorFlow NVIDIA (`nvcr.io/nvidia/tensorflow`) et monte le projet dans `/workspace`.
-
-#### Linux (fish)
-
-```fish
-cd "/home/kilo/Work/Cours - UQO/concept-statistique/concept-stat-projet-1"
-docker compose build jupyter-gpu
-docker compose up jupyter-gpu
-```
-
-Jupyter sera disponible sur:
-
-- URL: `http://localhost:8889`
-- Token: `concept-stat`
-
-Verification GPU depuis un autre terminal:
-
-```fish
-docker compose exec jupyter-gpu python -c "import tensorflow as tf; print(tf.config.list_physical_devices('GPU'))"
-```
-
-Arret:
-
-```fish
-docker compose down
-```
-
-#### Windows (PowerShell)
-
-```powershell
-cd "C:\chemin\vers\concept-stat-projet-1"
-docker compose build jupyter-gpu
-docker compose up jupyter-gpu
-```
-
-#### macOS
-
-Docker fonctionne sur macOS, mais le passthrough GPU NVIDIA n'est pas supporte nativement.
-Sur macOS, utiliser plutot le parcours CPU avec `venv` ci-dessous.
-
-### Option B - CPU via venv (recommande hors Linux NVIDIA)
-
-Installe uniquement le profil CPU.
-
-#### Linux (fish)
-
-```fish
-cd "/home/kilo/Work/Cours - UQO/concept-statistique/concept-stat-projet-1"
-python3 -m venv .venv
-source .venv/bin/activate.fish
-python -m pip install -U pip setuptools wheel
-pip install -r requirements.txt
-pip install -r requirements-tf-cpu.txt
-jupyter lab
-```
-
-Ouvrir ensuite:
-
-- `Devoir partie 2/DEVOIR Partie 2.ipynb`
-- ou `Devoir partie 2/DEVOIR Partie 2-gpu.ipynb` (execution CPU possible, mais notebook concu pour test GPU)
-
-#### Windows
-
-PowerShell:
-
-```powershell
-cd "C:\chemin\vers\concept-stat-projet-1"
-python -m venv .venv
-.venv\Scripts\Activate.ps1
-python -m pip install -U pip setuptools wheel
-pip install -r requirements.txt
-pip install -r requirements-tf-cpu.txt
-jupyter lab
-```
-
-CMD:
-
-```cmd
-cd C:\chemin\vers\concept-stat-projet-1
-python -m venv .venv
-.venv\Scripts\activate
-python -m pip install -U pip setuptools wheel
-pip install -r requirements.txt
-pip install -r requirements-tf-cpu.txt
-jupyter lab
-```
-
-#### macOS (zsh/bash)
 
 ```bash
-cd "/chemin/vers/concept-stat-projet-1"
 python3 -m venv .venv
 source .venv/bin/activate
 python -m pip install -U pip setuptools wheel
-pip install -r requirements.txt
-pip install -r requirements-tf-cpu.txt
+pip install -r requirements-base.txt
+```
+
+## Lancer le pipeline principal
+
+Depuis la racine du depot:
+
+```bash
+python firewall_svm.py
+```
+
+Comportement:
+- utilise automatiquement `log2.csv` s'il est present;
+- sinon bascule sur des donnees simulees (`make_classification`).
+
+Vous pouvez forcer une source:
+
+```bash
+python firewall_svm.py log2.csv
+# ou
+python firewall_svm.py https://.../fichier.csv
+```
+
+## Artefacts generes
+
+Chaque execution cree un dossier `run-<timestamp>/` contenant:
+- `resultats.txt` : trace complete de l'execution;
+- `run_manifest.json` : metadonnees (source, classes, meilleur noyau, F1 par classe, etc.);
+- `comparaison_svm.png`;
+- `matrice_confusion.png`;
+- `roc_allow.png`, `roc_deny.png`, `roc_drop.png`, `roc_reset_both.png`.
+
+Ces fichiers servent de base pour la section "Simulation et resultats" du projet.
+
+## Notebook principal (`Projet.ipynb`)
+
+Le notebook:
+- reutilise les fonctions de `firewall_svm.py` (pas de duplication majeure de logique);
+- execute les 4 noyaux avec interpretation des metriques;
+- compare les resultats obtenus avec la Table III de l'article;
+- lit les manifests de runs pour verifier la fraicheur et la coherence des experiences.
+
+Demarrage:
+
+```bash
 jupyter lab
 ```
 
-## Autres dossiers: execution avec venv
+Puis ouvrir `Projet.ipynb`.
 
-Pour les dossiers suivants, utiliser le meme `venv` CPU (pas besoin de Docker GPU):
+## Option Docker GPU (NVIDIA)
 
-- `Devoir partie 1/`
-- `Devoirs ID/`
-- `Projet ID/`
+Le service `jupyter-gpu` est defini dans `docker-compose.yml`.
 
-Exemple d'ouverture apres activation du `venv`:
+Prerequis:
+- Docker + Docker Compose
+- pilote NVIDIA fonctionnel (`nvidia-smi`)
+- NVIDIA Container Toolkit
 
-```bash
-jupyter lab "Devoir partie 1"
-jupyter lab "Devoirs ID"
-jupyter lab "Projet ID"
-```
-
-## Verification rapide
-
-Verifier l'environnement Python actif:
+Lancement:
 
 ```bash
-python -c "import sys; print(sys.executable)"
+docker compose build jupyter-gpu
+docker compose up jupyter-gpu
 ```
 
-Verifier TensorFlow:
+Acces:
+- URL: `http://localhost:8889`
+- token: `concept-stat`
+
+Arret:
 
 ```bash
-python -c "import tensorflow as tf; print('TF:', tf.__version__); print('GPUs:', tf.config.list_physical_devices('GPU'))"
+docker compose down
 ```
+
+## Notes methodologiques
+
+- Les metriques principales du pipeline sont en **macro** (coherent avec l'analyse multiclasses et la classe rare `reset-both`).
+- Le dataset est fortement desequilibre; l'interpretation ne doit pas se limiter a l'accuracy globale.
+- Le script inclut une optimisation optionnelle (`GridSearchCV`) du meilleur noyau apres comparaison initiale.
+
+## References
+
+- F. Ertam, M. Kaya, *Classification of Firewall Log Files with Multiclass Support Vector Machine*, 2018.
+- UCI / Kaggle Internet Firewall Data Set (11 features numeriques + classe `Action`).
