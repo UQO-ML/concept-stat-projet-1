@@ -101,3 +101,52 @@ Validation croisée : 5 plis (cv=5)
 Métrique de sélection : F1 macro
 Données d'entraînement : jeu complet (52425 instances)
 
+Meilleurs paramètres trouvés :
+    C = 10
+    gamma = scale
+F1 moyen (validation croisée) = 70.7%
+
+Rapport détaillé après optimisation (seuil par défaut 0.50) :
+              precision    recall  f1-score   support
+
+       allow       1.00      0.99      1.00      7528
+        deny       0.99      0.72      0.83      2998
+        drop       0.97      1.00      0.99      2570
+  reset-both       0.01      0.64      0.02        11
+
+    accuracy                           0.93     13107
+   macro avg       0.74      0.84      0.71     13107
+weighted avg       0.99      0.93      0.96     13107
+
+
+Sur le jeu test (macro %) : P=74.2 R=83.6 F1=70.7
+
+=======================================================
+ÉTAPE 10B : Calibration du seuil reset-both (sur validation)
+=======================================================
+Calibration interne: train_cal=41940 / val_cal=10485 (stratifié)
+Seuil sélectionné (reset-both_f1) : 0.0076 (score validation=0.0379)
+
+Rapport détaillé sur test — seuil sélectionné :
+              precision    recall  f1-score   support
+
+       allow       1.00      0.99      1.00      7528
+        deny       0.99      0.89      0.94      2998
+        drop       0.97      1.00      0.99      2570
+  reset-both       0.02      0.55      0.04        11
+
+    accuracy                           0.97     13107
+   macro avg       0.75      0.86      0.74     13107
+weighted avg       0.99      0.97      0.98     13107
+
+
+Comparaison test (macro avg):
+  défaut 0.50    -> P=74.2 R=83.6 F1=70.7
+  seuil 0.0076 -> P=74.5 R=85.7 F1=73.9
+  reset-both (F1) défaut=1.71 / seuil=3.81
+
+Manifest JSON : run-20260413T020219Z/run_manifest.json
+
+=======================================================
+TERMINÉ — Résultats sauvegardés dans : run-20260413T020219Z/
+=======================================================

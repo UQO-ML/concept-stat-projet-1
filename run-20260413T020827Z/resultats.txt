@@ -86,3 +86,18 @@ Sauvegardé : run-20260413T020827Z/matrice_confusion.png
 Sauvegardé : run-20260413T020827Z/roc_allow.png
 Sauvegardé : run-20260413T020827Z/roc_deny.png
 Sauvegardé : run-20260413T020827Z/roc_drop.png
+Sauvegardé : run-20260413T020827Z/roc_reset_both.png
+
+=======================================================
+ÉTAPE 10 : Optimisation hyperparamètres — SVM RBF
+=======================================================
+
+Kernel optimisé : rbf
+Paramètres testés :
+    • C : [0.1, 1, 10, 100]
+    • gamma : ['scale', 'auto', 0.001, 0.01, 0.1]
+Nombre de combinaisons : 20
+Validation croisée : 5 plis (cv=5)
+Métrique de sélection : F1 macro
+Données d'entraînement : jeu complet (52425 instances)
+
